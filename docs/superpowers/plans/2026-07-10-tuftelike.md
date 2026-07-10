@@ -277,6 +277,12 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 
 #let t69 = resolve-paper("us-trade-6x9")
 #assert(t69.trim.w == 152.4mm and t69.note-col == 26mm)
+#assert(t69.bleed == 3.175mm and t69.safety == 12.7mm and t69.top-extra == 10mm and t69.bottom-extra == 3mm) // pin tuning baseline
+#assert(marginalia-config(cq, "print", page-count-range: "61-150").inner.far == 3.18mm + 12.7mm + 3mm) // gutter param threads through
+#let usl = resolve-paper("us-letter")
+#assert(usl.letter-margin == (left: 1in, right: 3in, top: 1.5in, bottom: 1.25in))
+#assert(usl.handout-margin == (left: 1in, right: 3.5in, top: 1.5in, bottom: 1.5in))
+#assert(resolve-media(media: "print") == "print") // explicit arg wins over sys.inputs
 #assert(resolve-media() == "screen") // no --input media set during tests
 ```
 
@@ -288,6 +294,9 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 // All paper geometry is DATA. Print-proven crown-quarto values come from the
 // prototype book, verbatim. 6x9 note-col/top/bottom are initial values — tune
 // against printed proofs before calling the preset stable.
+// A paper preset dict requires: trim(w,h), bleed, safety, note-col, note-gap,
+// top-extra, bottom-extra, gutter-table. Custom dicts passed to resolve-paper
+// need that same shape for marginalia-config/page-size to work.
 #let lulu-gutter-table = (
   "0-60": 0mm, "61-150": 3mm, "151-400": 13mm, "401-600": 16mm, "over-600": 19mm,
 )
@@ -303,6 +312,8 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
     note-col: 26mm, note-gap: 4mm, top-extra: 10mm, bottom-extra: 3mm,
     gutter-table: lulu-gutter-table,
   ),
+  // letter/handout classes read letter-margin/handout-margin directly and
+  // bypass marginalia-config — hence the minimal one-entry gutter-table.
   "us-letter": (
     trim: (w: 215.9mm, h: 279.4mm), bleed: 0mm, safety: 12.7mm,
     note-col: 2in, note-gap: 0.5in, top-extra: 25.4mm, bottom-extra: 19mm,
@@ -329,7 +340,10 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 // binding gutter; outer column carries the note column. Screen = no bleed, one-sided.
 #let marginalia-config(paper, media, page-count-range: "151-400") = {
   let b = if media == "print" { paper.bleed } else { 0mm }
-  let gutter = paper.gutter-table.at(page-count-range, default: 0mm)
+  // no default: a typo'd page-count-range must FAIL LOUDLY, not silently
+  // produce a 0mm binding gutter (0mm is a legitimate value for short books,
+  // so a silent fallback would be indistinguishable from a real one)
+  let gutter = paper.gutter-table.at(page-count-range)
   (
     inner: (far: b + paper.safety + gutter, width: 0mm, sep: 0mm),
     outer: (far: b + paper.safety, width: paper.note-col, sep: paper.note-gap),
@@ -365,6 +379,11 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 #let t = resolve-theme((body-size: 10pt))
 #assert(t.body-size == 10pt and t.note-size == 9pt)
 #assert(t.serif.first() == "ETbb")
+#assert(default-theme.draft == false)
+#assert(default-theme.h1-size == 20pt)
+#let t2 = resolve-theme((serif: ("Override",)))
+#assert(t2.serif == ("Override",)) // arrays replace wholesale
+#assert(t2.body-size == 11pt) // untouched keys preserved through array override
 ```
 
 - [ ] **Step 2: Run `just test`** — fail: unknown `default-labels`.
@@ -396,6 +415,8 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
   note-leading: 0.5em,
   draft: false,
 )
+// Shallow merge, right side wins. Arrays REPLACE wholesale: overriding serif
+// with ("MyFont",) drops the fallbacks — pass the full stack you want.
 #let resolve-theme(user) = default-theme + user
 ```
 
@@ -414,6 +435,16 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 #assert(lead-split("One two three four") == ("One two three", " four"))
 #assert(lead-split("Once, upon a time") == ("Once", ", upon a time"))
 #assert(lead-split("Hi") == ("Hi", ""))
+// realistic heading constructs runners.typ will feed plain-text
+#assert(plain-text(smallcaps[Chapter Title]) == "Chapter Title")
+#assert(plain-text(link("https://example.com")[Click here]) == "Click here")
+#assert(plain-text([]) == "")
+// boundary inputs
+#assert(lead-split("") == ("", ""))
+#assert(lead-split(",abc") == ("", ",abc"))
+// unicode regression locks (byte-vs-cluster corruption)
+#assert(lead-split("Café one two three") == ("Café one two", " three"))
+#assert(lead-split("日本語のテスト, comma after multibyte") == ("日本語のテスト", ", comma after multibyte"))
 ```
 
 - [ ] **Step 2: `just test`** — fail. **Step 3: Write `src/utils.typ`**
@@ -423,17 +454,27 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 #let plain-text(it) = {
   if type(it) == str { it }
   else if it == [ ] { " " }
-  else if it.has("children") { it.children.map(plain-text).join("") }
+  else if it.has("children") {
+    // join() on an empty array returns none, not "" — guard the contract
+    let kids = it.children.map(plain-text)
+    if kids.len() == 0 { "" } else { kids.join("") }
+  }
   else if it.has("text") { plain-text(it.text) }
   else if it.has("body") { plain-text(it.body) }
   else { "" }
 }
 
 // Split for Tufte lead-in small caps: up to first comma or third space.
+// Tracks BYTE offsets while iterating clusters — position()/slice() are
+// byte-based; mixing in cluster counts corrupts multibyte text ("Café …").
 #let lead-split(s) = {
   let comma = s.position(",")
   let spaces = ()
-  for (i, ch) in s.clusters().enumerate() { if ch == " " { spaces.push(i) } }
+  let pos = 0
+  for ch in s.clusters() {
+    if ch == " " { spaces.push(pos) }
+    pos += ch.len()
+  }
   let third = if spaces.len() >= 3 { spaces.at(2) } else { s.len() }
   let stop = calc.min(if comma == none { s.len() } else { comma }, third)
   (s.slice(0, stop), s.slice(stop))
@@ -469,6 +510,10 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
   set list(indent: 0.05em, spacing: 0.65em, body-indent: 0.7em)
   set enum(indent: 0.05em, spacing: 0.65em, body-indent: 0.7em)
   show heading: set text(font: theme.serif, weight: "regular", style: "italic")
+  // level 1 needs an explicit size: the base show-heading override suppresses
+  // Typst's built-in heading scaling (measured h1 at 9.92pt without this —
+  // smaller than h3). chapter.typ replaces level-1 rendering for books.
+  show heading.where(level: 1): set text(size: theme.h1-size)
   show heading.where(level: 2): set text(size: theme.h2-size)
   show heading.where(level: 3): set text(size: theme.h3-size)
   show heading.where(level: 4): set text(size: theme.h4-size)
@@ -502,9 +547,18 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 ```typ
 #import "@preview/marginalia:0.3.1" as marginalia
 
+// Tufte convention is arabic superscript numerals, not marginalia's default
+// symbol cycle (note-markers-alternating: ● ○ ◆ ◇ …). `numbering:` on
+// marginalia.note() drives BOTH the margin marker and the in-text anchor —
+// anchor-numbering defaults to auto, which falls back to numbering
+// (marginalia/lib.typ note(), ~L618-624). This is the package's own
+// documented override for "superscript numbers" (lib.typ ~L611-612).
+#let arabic-note-numbering = (..i) => super(numbering("1", ..i))
+
 // Numbered Tufte sidenote. dy stays as an ESCAPE HATCH; marginalia positions
 // and collision-avoids automatically.
 #let sidenote(dy: 0pt, theme: (:), body) = marginalia.note(dy: dy,
+  numbering: arabic-note-numbering,
   text(size: theme.at("note-size", default: 9pt),
        font: theme.at("sans", default: ("Gill Sans MT", "Fira Sans", "Helvetica Neue")),
        par(leading: theme.at("note-leading", default: 0.5em), body)))
@@ -515,8 +569,12 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
        font: theme.at("sans", default: ("Gill Sans MT", "Fira Sans", "Helvetica Neue")), body))
 
 // Margin figure with caption.
-#let notefigure(content, caption: none, dy: 0pt) =
+// Note: body wrapped in parens because Typst 0.15.0 rejects a bare trailing
+// `=` at end-of-line with the expression starting on the next line — the
+// plan's original one-liner-across-two-lines form is a parse error.
+#let notefigure(content, caption: none, dy: 0pt) = (
   marginalia.notefigure(content, caption: caption, dy: dy)
+)
 
 // Full citation in the margin, numbered anchor in the text.
 // Requires a bibliography somewhere in the document (classes accept `bib:`).
@@ -555,7 +613,7 @@ Eyeball: numbered anchors superscripted; three clustered notes stack without ove
 
 Lead paragraph with a footnote sidenote.[^fn] Second sentence.
 
-Tag tier: <note>html note</note> and file tier: <note src="side.md"/>.
+Tag tier: <note>html note</note> and file tier: <note src="side.md"></note>.
 
 Legacy tier: #note[regex note] and #note[side.md] both still work.
 
@@ -569,6 +627,8 @@ Wide: <wide>this block escapes into the margin</wide>
 ```
 
 `tests/visual/md/side.md`: `A note that lives in its **own file**.`
+
+**WARNING (verified during implementation):** `<note src="…">` must be EXPLICITLY closed (`</note>`), never self-closed (`<note src="…"/>`). cmarker registers handlers as normal (non-void) tags, so a self-closed form silently swallows everything to end-of-file as its "body." Applies to all example/template content and the README (Task 20).
 
 - [ ] **Step 2: Write `src/markdown.typ`**
 
@@ -1346,7 +1406,7 @@ fonts-check:
 
 **Files:** Create `README.md`.
 
-- [ ] **Step 1: Write README** with: one-paragraph pitch; install (`just install`, `--font-path fonts`, where to get ETbb/Gill Sans/Consolas — name the fonts, never any book); an Environment note (the justfile shields typst invocations with `env -u TYPST_PACKAGE_PATH`; CI or direnv-less shells otherwise hit `package not found` if a global TYPST_PACKAGE_PATH is set — use `direnv exec .` or replicate `.envrc`); 10-line quickstart for each class (copy the working example headers); the three markdown note tiers with one-line samples; paper preset table (dims + note-col + tuning note for 6×9); media flag (`--input media=print`); cover build incl. ISBN barcode forms; extension registry how-to; cookbook stubs (6×9 print checklist: page-count-range, spine stock, ISBN placement); credits to marginalia/cmarker/tiaoma. Verify every command in the README by running it.
+- [ ] **Step 1: Write README** with: one-paragraph pitch; install (`just install`, `--font-path fonts`, where to get ETbb/Gill Sans/Consolas — name the fonts, never any book); an Environment note (the justfile shields typst invocations with `env -u TYPST_PACKAGE_PATH`; CI or direnv-less shells otherwise hit `package not found` if a global TYPST_PACKAGE_PATH is set — use `direnv exec .` or replicate `.envrc`); a WARNING in the note-tiers section that `<note src="…">` requires explicit close (`</note>`, never self-closing — silently swallows the rest of the file); 10-line quickstart for each class (copy the working example headers); the three markdown note tiers with one-line samples; paper preset table (dims + note-col + tuning note for 6×9); media flag (`--input media=print`); cover build incl. ISBN barcode forms; extension registry how-to; cookbook stubs (6×9 print checklist: page-count-range, spine stock, ISBN placement); credits to marginalia/cmarker/tiaoma. Verify every command in the README by running it.
 
 - [ ] **Step 2: Stage.**
 

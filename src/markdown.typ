@@ -1,0 +1,54 @@
+#import "@preview/cmarker:0.1.10" as cmarker
+#import "notes.typ": sidenote, marginnote, wideblock
+#import "typography.typ": tufte-quote
+
+// Renders CommonMark with the tuftelike scope pre-wired.
+// `reader` MUST be created in the USER's file so paths resolve there:
+//     #let reader = (p, ..a) => read(p, ..a.named())
+// Images load as bytes through it; <note src="…"> reads through it too.
+#let md(
+  src,                        // markdown string (pass reader("file.md") to read a file)
+  reader: none,
+  content-root: "",           // prefix applied to relative image/src paths
+  theme: (:),
+  extensions: (:),            // extra html tag handlers, merged over defaults
+  label-prefix: "",
+) = {
+  // NOTE: footnote→sidenote transform intentionally NOT here — it is
+  // ordering-sensitive and lives at class level (notes.typ footnote-transform).
+  let path-of(p) = if content-root == "" { p } else { content-root + "/" + p }
+  let render-file(p) = md(reader(path-of(p)), reader: reader,
+    content-root: content-root, theme: theme, extensions: extensions,
+    label-prefix: label-prefix)
+
+  let html-handlers = (
+    note: (attrs, body) => if "src" in attrs { sidenote(theme: theme, render-file(attrs.src)) }
+      else { sidenote(theme: theme, body) },
+    margin: (attrs, body) => marginnote(theme: theme, body),
+    wide: (attrs, body) => wideblock(body),
+  ) + extensions
+
+  let out = cmarker.render(
+    src,
+    html: html-handlers,
+    heading-labels: "github",
+    label-prefix: label-prefix,
+    blockquote: body => tufte-quote(theme, body),
+    scope: (
+      image: (path, alt: none) => image(bytes(reader(path-of(path), encoding: none)), alt: alt),
+      sidenote: body => sidenote(theme: theme, body),
+      marginnote: body => marginnote(theme: theme, body),
+    ),
+  )
+
+  // Continuity tier: legacy #note[...] regex + ```note fences, from the prototype era.
+  let note-match = regex("#note\\[((?s).*?)\\]")
+  show note-match: it => {
+    let arg = it.text.matches(note-match).first().captures.at(0)
+    if arg.ends-with(".md") { sidenote(theme: theme, render-file(arg)) }
+    else { sidenote(theme: theme, cmarker.render(arg)) }
+  }
+  show raw.where(lang: "note"): it => sidenote(theme: theme, it.text.trim())
+
+  out
+}
