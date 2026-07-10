@@ -115,7 +115,8 @@ Then run `direnv allow`.
 - [ ] **Step 6: Write `justfile`**
 
 ```just
-typst := "typst"
+# env -u shields against a mis-escaped global TYPST_PACKAGE_PATH; no-op otherwise
+typst := "env -u TYPST_PACKAGE_PATH typst"
 pkgdir := env_var('HOME') / "Library/Application Support/typst/packages/local/tuftelike"
 
 # symlink this repo as @local/tuftelike:0.1.0
@@ -127,7 +128,7 @@ install:
 test: install
     mkdir -p out
     for f in tests/assert/*.typ; do echo "== $f"; {{typst}} compile --root . --font-path fonts "$f" out/assert.pdf || exit 1; done
-    [ -x tests/compile-matrix.sh ] && tests/compile-matrix.sh || true
+    if [ -x tests/compile-matrix.sh ]; then tests/compile-matrix.sh; fi
 
 # build an example: just demo book print
 demo target media="screen": install
@@ -243,7 +244,7 @@ Append to `commit.txt` (leading blank line):
 ```
 test(spike): validate marginalia+cmarker anchoring, footnote transform, reader pattern
 ```
-**CHECKPOINT: ask Clay to review FINDINGS.md and run `gtxt`.** If (c) failed, flip `footnotes-as-sidenotes` default to `false` in Task 8 Step 2 and note it in FINDINGS.md.
+**CHECKPOINT: ask Clay to review FINDINGS.md and run `gtxt`.** Spike outcome applied: footnote→sidenote is viable but ordering-sensitive — the transform lives in `notes.typ` as `footnote-transform` and classes install it early, gated by a class-level `footnotes-as-sidenotes: true` param (Tasks 13–15).
 
 ---
 
@@ -494,7 +495,7 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
 ### Task 6: notes.typ
 
 **Files:** Create `src/notes.typ`, `tests/visual/notes-page.typ`. Modify `src/lib.typ`.
-**Consult `tests/spike/FINDINGS.md` (a) before Step 1 — adjust marginalia param names if the spike found different ones.**
+**Consult `tests/spike/FINDINGS.md` (a) before Step 1 — adjust marginalia param names if the spike found different ones. Spike addendum: marginalia's default markers are a symbol cycle (●○◆…); Tufte convention is arabic superscripts, so `sidenote` must set arabic numbering explicitly (verify the exact `numbering:`/`anchor-numbering:` form against the cached marginalia source).**
 
 - [ ] **Step 1: Write `src/notes.typ`**
 
@@ -523,9 +524,20 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
   cite(key, form: "full", supplement: supplement))
 
 #let wideblock = marginalia.wideblock
+
+// Class-level footnote→sidenote transform. MUST be installed before any
+// marginalia note call fires (spike finding c: `show footnote.entry: none`
+// is ordering-sensitive) — classes apply it in their early style chain.
+// Never install this locally inside md().
+#let footnote-transform(theme, doc) = {
+  show footnote: it => sidenote(theme: theme, it.body)
+  show footnote.entry: none
+  set footnote.entry(separator: none)   // entry show-rule alone leaves the separator line (spike round 2)
+  doc
+}
 ```
 
-- [ ] **Step 2: Re-export all five in `src/lib.typ`.**
+- [ ] **Step 2: Re-export all six (`sidenote`, `marginnote`, `notefigure`, `sidecite`, `wideblock`, `footnote-transform`) in `src/lib.typ`.**
 
 - [ ] **Step 3: Visual smoke `tests/visual/notes-page.typ`** — marginalia setup from `marginalia-config(resolve-paper("crown-quarto"), media)`, three sidenotes in one paragraph (collision check), a `marginnote`, a `notefigure` with the spike's `img.svg`, a `wideblock`, compiled in BOTH medias:
 `typst compile --root . tests/visual/notes-page.typ out/notes-screen.pdf` and with `--input media=print` → `out/notes-print.pdf`.
@@ -575,13 +587,14 @@ Wide: <wide>this block escapes into the margin</wide>
   content-root: "",           // prefix applied to relative image/src paths
   theme: (:),
   extensions: (:),            // extra html tag handlers, merged over defaults
-  footnotes-as-sidenotes: true,
   label-prefix: "",
 ) = {
+  // NOTE: footnote→sidenote transform intentionally NOT here — it is
+  // ordering-sensitive and lives at class level (notes.typ footnote-transform).
   let path-of(p) = if content-root == "" { p } else { content-root + "/" + p }
   let render-file(p) = md(reader(path-of(p)), reader: reader,
     content-root: content-root, theme: theme, extensions: extensions,
-    footnotes-as-sidenotes: footnotes-as-sidenotes, label-prefix: label-prefix)
+    label-prefix: label-prefix)
 
   let html-handlers = (
     note: (attrs, body) => if "src" in attrs { sidenote(theme: theme, render-file(attrs.src)) }
@@ -612,10 +625,7 @@ Wide: <wide>this block escapes into the margin</wide>
   }
   show raw.where(lang: "note"): it => sidenote(theme: theme, it.text.trim())
 
-  if footnotes-as-sidenotes {
-    show footnote: it => sidenote(theme: theme, it.body)
-    out
-  } else { out }
+  out
 }
 ```
 
@@ -963,6 +973,7 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
 #import "../frontmatter.typ": frontmatter-page, title-page, copyright-page, dedication-page, epigraph-page, toc
 #import "../runners.typ": folio
 #import "../backmatter.typ": references
+#import "../notes.typ": footnote-transform
 
 #let book(
   paper: "crown-quarto", media: auto, page-count-range: "151-400",
@@ -971,6 +982,7 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
   front: (:),                  // (introduction: content, preface: content, acknowledgments: content)
   parts: (), alt-runners: (:), icons: (:),
   theme: (:), labels: (:), bib: none, bib-visible: true,
+  footnotes-as-sidenotes: true,
   doc,
 ) = {
   let media = resolve-media(media: media)
@@ -988,6 +1000,8 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
     header: folio(theme, alt-runners: alt-runners), header-ascent: 30%)
   show: base-style.with(theme, labels, note-ext)
   show: chapter-heading-rules.with(theme, labels, note-ext, icons: icons)
+  // MUST precede all content: ordering-sensitive (spike finding c)
+  show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
   state("tuftelike").update((media: media, paper: paper, theme: theme,
     labels: labels, parts: parts))
 
@@ -1058,6 +1072,7 @@ Expected: `out/book-screen.pdf` (cream bg, notes right) and `out/book-print.pdf`
 #import "../themes.typ": resolve-theme
 #import "../labels.typ": resolve-labels
 #import "../typography.typ": base-style
+#import "../notes.typ": footnote-transform
 
 #let letter(
   paper: "us-letter", media: auto,
@@ -1067,6 +1082,7 @@ Expected: `out/book-screen.pdf` (cream bg, notes right) and `out/book-print.pdf`
   enclosures: (), cc: (),
   numbered-sections: false,
   theme: (:), labels: (:),
+  footnotes-as-sidenotes: true,
   doc,
 ) = {
   let media = resolve-media(media: media)
@@ -1086,6 +1102,8 @@ Expected: `out/book-screen.pdf` (cream bg, notes right) and `out/book-print.pdf`
         [#smallcaps(if re != none { re } else { "" }) #h(1fr) #counter(page).display("1")])
     })
   show: base-style.with(theme, labels, paper.note-col + paper.note-gap)
+  // MUST precede all content: ordering-sensitive (spike finding c)
+  show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
   if numbered-sections { set heading(numbering: "1.1.A.") }
 
   // letterhead
@@ -1328,7 +1346,7 @@ fonts-check:
 
 **Files:** Create `README.md`.
 
-- [ ] **Step 1: Write README** with: one-paragraph pitch; install (`just install`, `--font-path fonts`, where to get ETbb/Gill Sans/Consolas — name the fonts, never any book); 10-line quickstart for each class (copy the working example headers); the three markdown note tiers with one-line samples; paper preset table (dims + note-col + tuning note for 6×9); media flag (`--input media=print`); cover build incl. ISBN barcode forms; extension registry how-to; cookbook stubs (6×9 print checklist: page-count-range, spine stock, ISBN placement); credits to marginalia/cmarker/tiaoma. Verify every command in the README by running it.
+- [ ] **Step 1: Write README** with: one-paragraph pitch; install (`just install`, `--font-path fonts`, where to get ETbb/Gill Sans/Consolas — name the fonts, never any book); an Environment note (the justfile shields typst invocations with `env -u TYPST_PACKAGE_PATH`; CI or direnv-less shells otherwise hit `package not found` if a global TYPST_PACKAGE_PATH is set — use `direnv exec .` or replicate `.envrc`); 10-line quickstart for each class (copy the working example headers); the three markdown note tiers with one-line samples; paper preset table (dims + note-col + tuning note for 6×9); media flag (`--input media=print`); cover build incl. ISBN barcode forms; extension registry how-to; cookbook stubs (6×9 print checklist: page-count-range, spine stock, ISBN placement); credits to marginalia/cmarker/tiaoma. Verify every command in the README by running it.
 
 - [ ] **Step 2: Stage.**
 
