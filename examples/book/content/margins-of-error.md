@@ -26,6 +26,17 @@ permanent place in your draft. A single paragraph rarely tells you
 enough; a page shows whether the margin column stays legible once
 several notes compete for the same vertical space.
 
+A worked exchange from a workshop transcript, kept verbatim because the
+edit itself is the lesson:
+
+<prompt>Split the hedges out of this sentence: "This approach probably
+works for most six-by-nine books, though results may vary near the
+page-count extremes."</prompt>
+
+<response>Main sentence: "This approach works for six-by-nine books."
+Margin note: "Tested across the 61–600 page range; extremes near either
+end are the least verified."</response>
+
 [^confidence]: Not a footnote about statistics — a footnote about tone.
 "Probably" and "in most cases" are margin material; the main sentence
 reads better without them.

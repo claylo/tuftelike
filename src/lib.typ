@@ -12,8 +12,9 @@
 #import "chapter.typ": chapter-heading-rules, part-divider
 #import "runners.typ": folio
 #import "mainmatter.typ": begin-chapters, chapter-break, chapters, appendices
-#import "backmatter.typ": about-author, colophon, references
+#import "backmatter.typ": about-author, colophon, references, book-index
 #import "classes/book.typ": book
 #import "classes/letter.typ": letter
 #import "classes/handout.typ": handout
 #import "cover.typ": cover, spine-width, cover-size
+#import "extras/instructional.typ": instructional-extensions, instructional-icons

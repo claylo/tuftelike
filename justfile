@@ -23,3 +23,15 @@ demo target media="screen": install
 cover: install
     mkdir -p out
     {{typst}} compile --root . --font-path fonts examples/cover/main.typ out/cover.pdf
+
+# parity build against the prototype book (local only; needs PROTO_BOOK_DIR
+# from .envrc.local — direnv exports it into the shell before just runs)
+proto-check: install
+    [ -n "${PROTO_BOOK_DIR:-}" ] || { echo "PROTO_BOOK_DIR not set (see .envrc.local)" >&2; exit 1; }
+    mkdir -p tests/fixtures/proto out
+    ln -sfn "$PROTO_BOOK_DIR/content" tests/fixtures/proto/content
+    {{typst}} compile --root . --font-path fonts --input media=print tests/fixtures/proto/main.typ out/proto-print.pdf
+
+# confirm the print-proven fonts are on the font path
+fonts-check:
+    {{typst}} fonts --font-path fonts | grep -iE 'ETbb|Gill Sans|Consolas' || echo "expected fonts missing — see README fonts section"

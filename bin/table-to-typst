@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+# INPUT="$1"
+ CAPTION="$1"
+#
+# if [[ -z "$INPUT" ]]; then
+#   INPUT=$(cat)
+# fi
+#
+# if [[ -z "$INPUT" ]]; then
+#   echo "Usage: $0 table.md [Caption Text]"
+#   exit 1
+# fi
+
+# Default caption if none provided
+if [[ -z "$CAPTION" ]]; then
+  CAPTION="Converted Markdown Table"
+fi
+
+# Generate <fig:...> label from caption
+FIG_LABEL="fig:"$(echo "$CAPTION" | \
+  tr '[:upper:]' '[:lower:]' | \
+  sed -E 's/[^a-z0-9]+/-/g' | \
+  sed -E 's/^-+|-+$//g')
+
+awk -v caption="$CAPTION" -v label="$FIG_LABEL" '
+function escape(s) {
+  gsub(/"/, "\\\"", s)
+  gsub(/`/, "\\`", s)
+  return s
+}
+
+BEGIN {
+  row = 0
+}
+
+/^\|/ {
+  # Clean up line
+  gsub(/^\|/, "", $0)
+  gsub(/\|$/, "", $0)
+
+  n = split($0, cols, /\|/)
+
+  for (i = 1; i <= n; i++) {
+    gsub(/^[ \t]+/, "", cols[i])
+    gsub(/[ \t]+$/, "", cols[i])
+    cols[i] = escape(cols[i])
+  }
+
+  if (row == 0) {
+    print "<!--raw-typst"
+    print "#figure("
+    print "table("
+    printf "  columns: %d,\n", n
+    printf "  table.header"
+    for (i = 1; i <= n; i++) {
+      printf "[%s]", cols[i]
+    }
+    print ","
+  } else if (row == 1) {
+    # separator row — skip
+  } else {
+    printf "  "
+    for (i = 1; i <= n; i++) {
+      printf "[%s]", cols[i]
+      if (i < n) printf ", "
+    }
+    print ","
+  }
+
+  row++
+}
+
+END {
+  print "  // footer line"
+  print "  table.hline()"
+  print "),"
+  printf "caption:[%s]\n", caption
+  printf ") <%s>\n", label
+  print "-->"
+}
+' -

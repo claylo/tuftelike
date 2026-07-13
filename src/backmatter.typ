@@ -17,3 +17,9 @@
 #let references(bib, hidden: false) = {
   if hidden { show bibliography: none; bib } else { bib }
 }
+
+// Index hook — deliberate no-op in v0.1. Reserved so books can call
+// #book-index() today and get a generated index in a future release
+// (in-dexter integration is the planned path; see the design doc's
+// Future section). Emits nothing.
+#let book-index() = none

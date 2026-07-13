@@ -1055,6 +1055,10 @@ footnote-to-sidenote transform.
 #let references(bib, hidden: false) = {
   if hidden { show bibliography: none; bib } else { bib }
 }
+
+// Index hook — deliberate no-op in v0.1 (in-dexter integration is the
+// planned future path). Reserved API so books can call it today.
+#let book-index() = none
 ```
 
 - [ ] **Step 2: Re-export; extend the Task 11 visual doc** with `about-author` and a `sidecite` + `references(bibliography("refs.bib"), hidden: true)` (create `tests/visual/refs.bib` with one entry: `@book{demo1, title={Demo Title}, author={Anon}, year={2020}}`). Eyeball: full citation appears in margin, no references section printed. `just test` still green. Stage.

@@ -18,13 +18,16 @@
     column. Everything that follows tries to make that somewhere useful.
   ]),
   parts: ((title: "Part I: Threads", first-chapter: 1),),
-  icons: ("Quick Try": image("../_assets/icon-flask.svg")),
+  // bundled keyword→icon map; root-absolute path because the image() call
+  // inside instructional-icons resolves against the package, not this file
+  icons: instructional-icons(assets: "/examples/_assets"),
 )
 
 #show: begin-chapters.with(resolve-media())
 #part-divider(default-theme, default-labels, "I", "Threads")
 #chapters(
   ("content/part1-opening.md", "content/finding-the-thread.md", "content/margins-of-error.md"),
-  reader: reader, media: resolve-media(), content-root: "content")
+  reader: reader, media: resolve-media(), content-root: "content",
+  extensions: instructional-extensions(default-theme))
 #appendices(("content/appendix-tooling.md",), reader: reader,
   media: resolve-media(), content-root: "content")

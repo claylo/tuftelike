@@ -239,3 +239,79 @@ itself.
 Both PDFs compile with exit code 0 and zero warnings (missing ETbb/Gill Sans MT fonts —
 not installed in this environment — fell back silently; no warning text emitted by this
 Typst build, confirmed by explicit exit-code checks, not just absence of stderr text).
+
+## Parity
+
+Evidence gathered by running `just proto-check` (via `direnv exec .` so the untracked
+`.envrc.local`'s `PROTO_BOOK_DIR` loads) against a local, gitignored fixture
+(`tests/fixtures/proto/main.typ` — never committed, per `.gitignore`) that renders four
+real chapter files from a private manuscript through `book.with(paper: "crown-quarto",
+…)` and `chapters(reader: …)`, using the continuity (legacy `#note[...]`) tier
+exclusively — confirmed by inspection that the sampled chapters use no markdown
+footnotes, no HTML `<note>` tags, and no images; every margin note in the fixture comes
+from `#note[...]` or its file-transclusion form `#note[path/to/file.md]`.
+
+**What compiled:** both media (`screen`, `print`) compile at exit 0 with zero warnings,
+48 pages in print media — a minimal front-matter sequence (no copyright dict passed, so
+that page is correctly skipped per Task 13's `if copyright != (:) or publisher != none`
+guard), one part divider, four numbered chapters of real prose, running heads throughout,
+and several dozen legacy-tier margin notes, all via `just proto-check`'s own recipe
+end-to-end (not just a raw `typst compile`).
+
+**Note-tier behavior vs. prototype:** every `#note[...]` / `#note[path.md]` call
+rendered as an auto-positioned, collision-avoided margin note with no manual `dy:`
+anywhere in the fixture — confirmed by eyeball on multiple pages carrying 2+ notes in
+close vertical proximity (no overlaps, no manual nudging needed anywhere). This is the
+expected improvement over a manual-positioning approach: marginalia's own collision
+avoidance handled every case in real content, not just the synthetic `examples/`
+prose.
+
+**Heading-label resolution:** cmarker's `heading-labels: "github"` correctly auto-slugged
+every heading across the four chosen chapters, including at least two containing `&`
+and one containing `+` — confirmed via a clean TOC render showing correct chapter
+numbers, full titles with special characters and punctuation intact, and page numbers
+for all 4 chapters and their subsections (20 heading-derived TOC entries total, zero
+label errors in the final compile, zero `link_id`-style hacks anywhere in the fixture).
+
+Getting there took one iteration, worth recording because the failure mode is
+instructive: the first four-chapter selection (picked without checking cross-references)
+failed to compile with three "label `<...>` does not exist" errors. Each traced back to
+a real in-content cross-reference — either a `[text][@slug]` form or a plain
+`[text](#slug)` form — pointing at a heading in a *fifth* chapter that wasn't part of
+the compiled subset. This is correct, expected Typst behavior: a label genuinely doesn't
+exist if the heading that would define it isn't in the document. It is not a tuftelike
+defect. Re-picking the four chapters so every in-set cross-reference's target heading was
+also in the set made the errors disappear with zero code changes. Net: zero real
+label-resolution bugs found — the mechanism works correctly on real, heavily
+cross-referenced content; it just (correctly) requires referenced targets to be part of
+the compile, same as it would in any Typst document.
+
+**Icon registry against real content:** `icons:` was keyed on a short phrase that
+recurs verbatim as an H3 prefix across the source material's exercise-style sections
+(structurally identical to the `examples/book/` icon demo, just matched against real
+headings instead of synthetic ones). It matched and rendered inline exactly as designed
+— confirmed by eyeball.
+
+**Tables:** one native CommonMark table (in one of the four chapters) rendered correctly
+as a full body-width table with header row and numbered caption, via cmarker's built-in
+table support and tuftelike's `figure.caption` show rule. No margin-routed table was
+present in the sampled content, so margin-table behavior specifically remains untested
+by this fixture — noted as a coverage gap, not a failure.
+
+**What drifted acceptably:** one inert artifact, a single occurrence (across all four
+chapters) of a prototype-specific inline helper call — shaped like a Typst function call
+but not one of tuftelike's tiers (not `#note[...]`, not a recognized HTML tag, not a
+`<!--raw-typst -->` escape) — rendered as literal plain text in the output instead of
+resolving to anything, with no error, warning, or crash. This is expected: tuftelike's
+markdown pipeline only special-cases its documented tiers; arbitrary custom
+Typst-looking syntax sitting in prose is inert by design rather than silently
+mis-evaluated or silently dropped. Cosmetic only, affecting a single occurrence in one
+chapter.
+
+**Template fixes required:** none. No file under `src/` changed as a result of this
+fixture. Every rendering gap traced back either to fixture composition (the
+cross-reference selection issue above, resolved by choosing a self-contained chapter
+set — a fixture-authoring fix, not a template fix) or to prototype-specific tooling
+outside tuftelike's documented scope (the inert helper-call artifact above). The
+template itself — geometry, notes, markdown pipeline, chapter openers, icons, TOC,
+runners — held up unmodified against real, messy, heavily cross-referenced content.
