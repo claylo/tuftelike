@@ -4,6 +4,7 @@
   sans: ("Gill Sans MT", "Fira Sans", "Helvetica Neue", "Arial"),
   mono: ("Consolas", "Menlo", "Monaco"),
   body-size: 11pt, note-size: 9pt, folio-size: 8pt,
+  body-leading: 0.8em, par-spacing: 1.4em,   // prototype book's print-proven metrics
   h1-size: 20pt, h2-size: 18pt, h3-size: 16pt, h4-size: 14pt, h5-size: 12pt,
   text-fill: luma(30),
   screen-bg: rgb("FFFFF8"),

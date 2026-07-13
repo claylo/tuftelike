@@ -154,15 +154,21 @@ Full working example: `examples/handout/`.
 Markdown content gets three ways to put something in the margin, plus a
 footnote shortcut:
 
+**Numbering follows anchoring**, matching Tufte's own books: unnumbered
+margin notes are the workhorse; numbered sidenotes appear only where a
+precise in-text anchor matters.
+
 - **Footnotes**, automatically: a standard `[^1]` / `[^1]: note text` pair
-  becomes a numbered sidenote with no extra markup. Opt out per class with
-  `footnotes-as-sidenotes: false`.
-- **HTML tags** (recommended): `<note>inline note</note>`, or pull the note
-  body from another file with `<note src="other.md"></note>`. Related tags:
-  `<margin>…</margin>` (unnumbered) and `<wide>…</wide>` (spans into the
-  margin).
+  becomes a **numbered** sidenote — the reference marker you typed IS the
+  anchor. Opt out per class with `footnotes-as-sidenotes: false`.
+- **HTML tags** (recommended): `<note>inline note</note>` renders
+  **unnumbered** (floating commentary); add the attribute — `<note numbered>`
+  — for a numbered sidenote. Pull the body from another file with
+  `<note src="other.md"></note>`. Related tags: `<margin>…</margin>`
+  (always unnumbered) and `<wide>…</wide>` (spans into the margin).
 - **Legacy bracket syntax** (continuity tier, for content carried over from
-  older sources): `#note[inline note]`.
+  older sources): `#note[inline note]` — always unnumbered, exactly as the
+  print-proven source rendered it.
 
 > **`<note src="…">` must be closed explicitly.** `<note src="side.md"></note>`
 > works; `<note src="side.md"/>` does not. cmarker registers `note` as a

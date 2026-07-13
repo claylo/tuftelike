@@ -168,6 +168,8 @@ Body column width emerges from marginalia's setup rather than being computed twi
 `md(path-or-content, root: auto)` wraps `cmarker.render` with the template scope pre-wired. Three invocation tiers for margin notes:
 
 1. **Zero-syntax (headline feature):** standard `[^1]` markdown footnotes become numbered sidenotes via a footnote→sidenote transform. Toggle: `footnotes-as-sidenotes: true` on the CLASS (not `md()`): the transform is ordering-sensitive and must be installed before any margin-note call fires (spike finding).
+
+**Numbering follows anchoring** (parity finding, matching both the prototype book and Tufte's own predominant practice): footnotes are numbered because the typed reference is an anchor; `<note>` and the legacy tier render unnumbered floating commentary; `<note numbered>` opts a tag note into numbering.
 2. **Robust tags** via cmarker `html:` mapping: `<note>…</note>`, `<note src="sidenotes/eliza.md"/>`, `<margin>…</margin>` (unnumbered), `<wide>…</wide>`, plus registered extensions.
 3. **Continuity forms** (so prototype-era content ports unedited): regex show-rules for `#note[…]` (inline and `.md`-file reference), fenced ```` ```note ```` blocks, `^ref^` / `^_ref_^` cross-references.
 

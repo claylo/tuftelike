@@ -411,6 +411,7 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
   sans: ("Gill Sans MT", "Fira Sans", "Helvetica Neue", "Arial"),
   mono: ("Consolas", "Menlo", "Monaco"),
   body-size: 11pt, note-size: 9pt, folio-size: 8pt,
+  body-leading: 0.8em, par-spacing: 1.4em,   // prototype book's print-proven metrics
   h1-size: 20pt, h2-size: 18pt, h3-size: 16pt, h4-size: 14pt, h5-size: 12pt,
   text-fill: luma(30),
   screen-bg: rgb("FFFFF8"),
@@ -504,13 +505,18 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
   #if attribution != none [ #v(0.3em) #align(right, text(style: "italic", [— #attribution])) ]
 ]
 
-// Applies document-wide text + heading + list + figure-caption rules.
-// `note-ext` = how far captions/openers extend into the note column.
-#let base-style(theme, labels, note-ext, doc) = {
+// Applies document-wide text + heading + list + figure/table rules.
+// `note-ext` = how far captions/tables extend into the note column.
+// `media` drives the print-only parity behaviors (caption/table alignment
+// flips to the outer edge on versos; tables become unbreakable).
+// Paragraph, list, caption, and table metrics are the prototype book's
+// print-proven values, ported verbatim.
+#let base-style(theme, labels, note-ext, media: "screen", doc) = {
   set text(font: theme.serif, size: theme.body-size, fill: theme.text-fill)
-  set par(justify: true, leading: 0.65em)
-  set list(indent: 0.05em, spacing: 0.65em, body-indent: 0.7em)
-  set enum(indent: 0.05em, spacing: 0.65em, body-indent: 0.7em)
+  set par(justify: true, leading: theme.body-leading, spacing: theme.par-spacing)
+  set list(body-indent: 1em, spacing: 1.2em)
+  set enum(body-indent: 1em, spacing: 1.2em)
+  show list: set par(justify: false)
   show heading: set text(font: theme.serif, weight: "regular", style: "italic")
   // level 1 needs an explicit size: the base show-heading override suppresses
   // Typst's built-in heading scaling (measured h1 at 9.92pt without this —
@@ -521,10 +527,45 @@ test(spike): validate marginalia+cmarker anchoring, footnote transform, reader p
   show heading.where(level: 4): set text(size: theme.h4-size)
   show heading.where(level: 5): set text(size: theme.h5-size)
   set heading(numbering: none) // mainmatter turns numbering on
-  show figure.caption: it => block(width: 100% + note-ext)[
-    #text(font: theme.sans, size: theme.note-size)[
-      #it.supplement #context it.counter.display(it.numbering)#linebreak()#it.body]
-  ]
+
+  // Captions: sans, "Supplement N." on its own sticky line, body below,
+  // extending into the note column; on print versos the whole block sets
+  // flush to the outer (left) edge.
+  show figure.caption: it => context {
+    let outer = if media == "print" and calc.even(here().page()) { right } else { left }
+    align(outer, block(width: 100% + note-ext, inset: 0mm, sticky: true,
+      align(left, {
+        block(below: 0.5em, sticky: true,
+          text(font: theme.sans, size: theme.note-size,
+            [#it.supplement #context it.counter.display(it.numbering).]))
+        text(font: theme.sans, size: theme.note-size, it.body)
+      })))
+  }
+
+  // Tables: caption on top, minimal strokes (header rule pair only; authors
+  // close with table.hline), 10pt header / 9pt body cells, full width into
+  // the note column, unbreakable in print, verso-flush in print.
+  show figure.where(kind: table): set figure.caption(position: top)
+  show figure.where(kind: table): set figure(supplement: labels.table, numbering: "1")
+  show figure.where(kind: table): set block(breakable: media != "print")
+  show figure.where(kind: table): it => context {
+    let outer = if media == "print" and calc.even(here().page()) { right } else { left }
+    align(outer, it)
+  }
+  show figure.where(kind: image): set figure(supplement: labels.figure, numbering: "1")
+  show figure.where(kind: raw): set figure.caption(position: top)
+  show figure.where(kind: raw): set figure(supplement: labels.code, numbering: "1")
+  show table.cell: set par(justify: false)   // shipped book's cells are ragged-right
+  show table.cell: it => {
+    set text(size: 10pt, weight: "regular") if it.y == 0
+    set text(size: theme.note-size, weight: "regular") if it.y > 0
+    set align(left)
+    it
+  }
+  set table(stroke: (_, y) => if y == 0 { (top: 1pt + theme.text-fill, bottom: 0.3pt + theme.text-fill) })
+  set table.hline(stroke: 0.7pt + theme.text-fill)
+  show table: t => block(width: 100% + note-ext, inset: 0mm, t)
+
   show quote.where(block: true): it => tufte-quote(theme, it.body,
     attribution: it.attribution)
   if theme.draft {
@@ -1121,7 +1162,7 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
   set page(width: ps.width, height: ps.height,
     fill: if media == "screen" { theme.screen-bg } else { none },
     header: folio(theme, note-ext: note-ext, media: media, alt-runners: alt-runners), header-ascent: 30%)
-  show: base-style.with(theme, labels, note-ext)
+  show: base-style.with(theme, labels, note-ext, media: media)
   show: chapter-heading-rules.with(theme, labels, note-ext, icons: icons)
   // MUST precede all content: ordering-sensitive (spike finding c)
   show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
@@ -1227,7 +1268,7 @@ Expected: `out/book-screen.pdf` (cream bg, notes right) and `out/book-print.pdf`
       text(font: theme.serif, size: theme.folio-size, tracking: 0.12em,
         [#smallcaps(if re != none { re } else { "" }) #h(1fr) #counter(page).display("1")])
     })
-  show: base-style.with(theme, labels, paper.note-col + paper.note-gap)
+  show: base-style.with(theme, labels, paper.note-col + paper.note-gap, media: media)
   // MUST precede all content: ordering-sensitive (spike finding c)
   show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
   // set inside a bare if{} never escapes the block — express the toggle

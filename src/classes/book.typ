@@ -40,7 +40,7 @@
   set page(width: ps.width, height: ps.height,
     fill: if media == "screen" { theme.screen-bg } else { none },
     header: folio(theme, note-ext: note-ext, media: media, alt-runners: alt-runners), header-ascent: 30%)
-  show: base-style.with(theme, labels, note-ext)
+  show: base-style.with(theme, labels, note-ext, media: media)
   show: chapter-heading-rules.with(theme, labels, note-ext, icons: icons)
   // MUST precede all content: ordering-sensitive (spike finding c)
   show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }

@@ -315,3 +315,31 @@ set — a fixture-authoring fix, not a template fix) or to prototype-specific to
 outside tuftelike's documented scope (the inert helper-call artifact above). The
 template itself — geometry, notes, markdown pipeline, chapter openers, icons, TOC,
 runners — held up unmodified against real, messy, heavily cross-referenced content.
+
+### Parity round 2 — side-by-side against the prototype's print PDF
+
+Round 1 verified compiles-clean only; a true page-against-page comparison
+with the prototype's final print PDF surfaced three fidelity gaps, all
+fixed and re-verified by re-rendering the same spread from both PDFs:
+
+- **Tables had never been ported** — they rendered with Typst defaults
+  (full grid, body width). Now faithful: caption on top as a two-line
+  sticky split ("Table N." over the caption body, sans, note-size),
+  header-only strokes (1pt top / 0.3pt below header; authors close with
+  a table.hline), 10pt header / 9pt body cells, left-aligned ragged-right
+  cells, full width extending into the note column, flush to the outer
+  edge on print versos, unbreakable in print.
+- **Body metrics**: paragraph leading 0.8em / spacing 1.4em (the
+  print-proven values; we had 0.65em), list body-indent 1em / spacing
+  1.2em with unjustified list items — all now theme keys.
+- **Note numbering**: the prototype's notes are all unnumbered. Numbering
+  now follows ANCHORING: markdown footnotes render numbered (the typed
+  reference is an anchor), `<note>` and the legacy `#note[…]`/fence tiers
+  render unnumbered, `<note numbered>` opts in.
+
+Comparison anchor: the same table-bearing verso spread rendered from both
+PDFs matches on caption structure, rules, cell typography, margin
+extension, outer-edge alignment, unnumbered margin notes, H2 treatment,
+folio placement, and body leading. Remaining deltas are structural to the
+excerpt (table/page numbering offsets from rendering 4 of the book's
+chapters) and acceptable.

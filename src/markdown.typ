@@ -21,9 +21,17 @@
     content-root: content-root, theme: theme, extensions: extensions,
     label-prefix: label-prefix)
 
+  // Numbering follows ANCHORING (Tufte's own practice: unnumbered margin
+  // notes are the workhorse; numbered sidenotes only where a precise
+  // in-text anchor matters). Markdown footnotes [^1] are anchored by
+  // definition → numbered (see footnote-transform). <note> is floating
+  // commentary → unnumbered, unless the author opts in: <note numbered>.
   let html-handlers = (
-    note: (attrs, body) => if "src" in attrs { sidenote(theme: theme, render-file(attrs.src)) }
-      else { sidenote(theme: theme, body) },
+    note: (attrs, body) => {
+      let pick = if "numbered" in attrs { sidenote } else { marginnote }
+      if "src" in attrs { pick(theme: theme, render-file(attrs.src)) }
+      else { pick(theme: theme, body) }
+    },
     margin: (attrs, body) => marginnote(theme: theme, body),
     wide: (attrs, body) => wideblock(body),
   ) + extensions
@@ -44,13 +52,16 @@
   )
 
   // Continuity tier: legacy #note[...] regex + ```note fences, from the prototype era.
+  // Legacy tier renders UNNUMBERED (marginnote): the prototype book's
+  // notes carried no markers, and this tier exists to reproduce that
+  // content faithfully. The footnote and <note> tiers stay numbered.
   let note-match = regex("#note\\[((?s).*?)\\]")
   show note-match: it => {
     let arg = it.text.matches(note-match).first().captures.at(0)
-    if arg.ends-with(".md") { sidenote(theme: theme, render-file(arg)) }
-    else { sidenote(theme: theme, cmarker.render(arg)) }
+    if arg.ends-with(".md") { marginnote(theme: theme, render-file(arg)) }
+    else { marginnote(theme: theme, cmarker.render(arg)) }
   }
-  show raw.where(lang: "note"): it => sidenote(theme: theme, it.text.trim())
+  show raw.where(lang: "note"): it => marginnote(theme: theme, it.text.trim())
 
   out
 }

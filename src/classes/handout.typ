@@ -42,7 +42,7 @@
         text(font: theme.sans, size: theme.folio-size, content)
       }
     })
-  show: base-style.with(theme, labels, paper.note-col + paper.note-gap)
+  show: base-style.with(theme, labels, paper.note-col + paper.note-gap, media: media)
   // MUST precede all content: ordering-sensitive (spike finding c)
   show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
 

@@ -32,7 +32,7 @@
       text(font: theme.serif, size: theme.folio-size, tracking: 0.12em,
         [#smallcaps(if re != none { re } else { "" }) #h(1fr) #counter(page).display("1")])
     })
-  show: base-style.with(theme, labels, paper.note-col + paper.note-gap)
+  show: base-style.with(theme, labels, paper.note-col + paper.note-gap, media: media)
   // MUST precede all content: ordering-sensitive (spike finding c)
   show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
   // NOTE: `set heading(numbering: if … { … } else { none })`, not the

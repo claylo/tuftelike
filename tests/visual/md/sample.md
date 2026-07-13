@@ -2,7 +2,7 @@
 
 Lead paragraph with a footnote sidenote.[^fn] Second sentence.
 
-Tag tier: <note>html note</note> and file tier: <note src="side.md"></note>.
+Tag tier: <note>html note, unnumbered</note>, opt-in numbering: <note numbered>a numbered one</note>, and file tier: <note src="side.md"></note>.
 
 Legacy tier: #note[regex note] and #note[side.md] both still work.
 
