@@ -787,21 +787,29 @@ footnote-to-sidenote transform.
 ]
 
 // Polymorphic: string | array | dict(author -> dedication)
+// If-chains live in an explicit #{ } code block: in MARKUP mode a
+// multi-line `else` is not recognized as chained — it prints as literal
+// text and only the if-branch ever runs (verified in Typst 0.15.0).
 #let dedication-page(theme, dedication) = align(center + horizon)[
   #set text(style: "italic")
-  #if type(dedication) == str [ #dedication ]
-  else if type(dedication) == array [ #dedication.join([#v(1.5em)]) ]
-  else [ #dedication.pairs().map(((who, what)) => [#what #v(0.2em) #text(style: "normal", smallcaps(who))]).join(v(2em)) ]
+  #{
+    if type(dedication) == str { dedication }
+    else if type(dedication) == array { dedication.join(v(1.5em)) }
+    else { dedication.pairs().map(((who, what)) => [#what #v(0.2em) #text(style: "normal", smallcaps(who))]).join(v(2em)) }
+  }
 ]
 
 // Polymorphic: string | (quote, author) | array | dict(author -> quote)
+// Same #{ } wrap as dedication-page — markup-mode else-chain quirk.
 #let epigraph-page(theme, epigraphs) = align(left + horizon)[
   #let one(q, a) = [#tufte-quote(theme, q, attribution: a) #v(2em)]
-  #if type(epigraphs) == str { one(epigraphs, none) }
-  else if type(epigraphs) == array and epigraphs.len() == 2 and type(epigraphs.first()) == str {
-    one(epigraphs.first(), epigraphs.last())
-  } else if type(epigraphs) == array { epigraphs.map(e => one(e, none)).join() }
-  else { epigraphs.pairs().map(((a, q)) => one(q, a)).join() }
+  #{
+    if type(epigraphs) == str { one(epigraphs, none) }
+    else if type(epigraphs) == array and epigraphs.len() == 2 and type(epigraphs.first()) == str {
+      one(epigraphs.first(), epigraphs.last())
+    } else if type(epigraphs) == array { epigraphs.map(e => one(e, none)).join() }
+    else { epigraphs.pairs().map(((a, q)) => one(q, a)).join() }
+  }
 ]
 
 // TOC with data-driven part dividers. parts: ((title: "…", first-chapter: 1), …)
@@ -819,7 +827,10 @@ footnote-to-sidenote transform.
     it
   }
   show outline.entry: set text(font: theme.serif, style: "italic")
-  outline(title: labels.contents, depth: 2, fill: h(1em))
+  // Tufte TOC: whitespace gap, not dot leaders. fill lives on outline.entry
+  // in Typst 0.15 — outline() itself has no fill: parameter.
+  set outline.entry(fill: h(1em))
+  outline(title: labels.contents, depth: 2)
 }
 ```
 
@@ -872,7 +883,8 @@ footnote-to-sidenote transform.
   show heading.where(level: 3): it => {
     import "utils.typ": plain-text
     let t = plain-text(it.body)
-    let hit = icons.pairs().find(((k, _)) => t.starts-with(k) or t.contains(k))
+    // skip empty keys: "".starts-with matches every heading
+    let hit = icons.pairs().find(((k, _)) => k != "" and (t.starts-with(k) or t.contains(k)))
     if hit != none {
       grid(columns: (1.5em, auto), gutter: 0.5em,
         box(height: 1em, hit.last()), it.body)
@@ -945,11 +957,17 @@ footnote-to-sidenote transform.
 #import "markdown.typ": md
 
 // Marks the front/main boundary for folio logic; starts heading numbering.
-#let begin-chapters(media) = {
+// MUST be invoked as `#show: begin-chapters.with(media)` — never called
+// bare: a `set` rule inside a plain function call is scoped to that call's
+// block and never reaches sibling content (headings stay unnumbered).
+// The trailing `doc` param makes the show-chain form work; appendices()'s
+// own set-rule still overrides this chain for appendix numbering.
+#let begin-chapters(media, doc) = {
   [#metadata(none) <chapters-begin-here>]
   counter(heading).update(0)
   set heading(numbering: "1.1.1")
   counter(page).update(1)
+  doc
 }
 
 #let chapter-break(media, split) = {
@@ -961,6 +979,7 @@ footnote-to-sidenote transform.
 // an array of PATHS. Rendered as ONE cmarker pass so labels/footnotes resolve
 // across chapter files; breaks are injected as raw-typst between files.
 #let chapters(srcs, reader: none, media: "screen", split: "odd", ..md-args) = {
+  assert(split in ("odd", "soft"), message: "chapters(): split must be \"odd\" or \"soft\", got " + repr(split))
   let texts = srcs.map(s => if reader != none and s.ends-with(".md") { reader(s) } else { s })
   let break-md = if media == "print" and split == "odd" {
     "\n\n<!--raw-typst #pagebreak(to: \"odd\", weak: true) -->\n\n"
@@ -969,7 +988,10 @@ footnote-to-sidenote transform.
 }
 
 // Appendix mode: letters, own counter, Appendix label auto-detected by chapter.typ.
+// Leads with its own break so the first appendix starts on a fresh page
+// (recto in print) instead of mid-page after the last chapter's prose.
 #let appendices(srcs, reader: none, media: "screen", ..md-args) = {
+  chapter-break(media, "odd")
   counter(heading).update(0)
   set heading(numbering: "A.1")
   chapters(srcs, reader: reader, media: media, split: "odd", ..md-args.named())
@@ -1109,7 +1131,7 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
   icons: ("Quick Try": image("../_assets/icon-flask.svg")),
 )
 
-#begin-chapters(resolve-media())
+#show: begin-chapters.with(resolve-media())
 #part-divider(default-theme, default-labels, "I", "Threads")
 #chapters(
   ("content/part1-opening.md", "content/finding-the-thread.md", "content/margins-of-error.md"),
