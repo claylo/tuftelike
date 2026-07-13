@@ -14,7 +14,13 @@
   numbering: arabic-note-numbering,
   text(size: theme.at("note-size", default: 9pt),
        font: theme.at("sans", default: ("Gill Sans MT", "Fira Sans", "Helvetica Neue")),
-       par(leading: theme.at("note-leading", default: 0.5em), body)))
+       // block + set par, NOT par(..)[..]: wrapping in par() silently DROPS
+       // block-level content (headings/lists in note bodies) and triggers
+       // "parbreak ignored" warnings on markdown-rendered footnotes
+       block({
+         set par(leading: theme.at("note-leading", default: 0.5em))
+         body
+       })))
 
 // Unnumbered floating margin commentary.
 #let marginnote(dy: 0pt, theme: (:), body) = marginalia.note(counter: none, dy: dy,
