@@ -18,3 +18,8 @@ test: install
 demo target media="screen": install
     mkdir -p out
     {{typst}} compile --root . --font-path fonts --input "media={{media}}" "examples/{{target}}/main.typ" "out/{{target}}-{{media}}.pdf"
+
+# build the wrap-cover example (no media toggle — cover is a single compile target)
+cover: install
+    mkdir -p out
+    {{typst}} compile --root . --font-path fonts examples/cover/main.typ out/cover.pdf

@@ -13,7 +13,7 @@
 #show: marginalia.setup.with(..mc)
 #set page(width: ps.width, height: ps.height,
   fill: if media == "screen" { rgb("FFFFF8") } else { none },
-  header: folio(theme))
+  header: folio(theme, note-ext: paper.note-col + paper.note-gap, media: media))
 #show: footnote-transform.with(theme)
 #show: base-style.with(theme, labels, note-ext)
 #show: chapter-heading-rules.with(theme, labels, note-ext)

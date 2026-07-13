@@ -75,8 +75,16 @@
 #let toc(theme, labels, parts: ()) = {
   show outline.entry.where(level: 1): it => {
     let divider = context {
-      let num = counter(heading).at(it.element.location())
-      let hit = parts.find(p => p.first-chapter == num.first())
+      let el = it.element
+      let num = counter(heading).at(el.location())
+      // Appendix headings restart counter(heading) at 1 too (mainmatter.typ's
+      // appendices()), so a part starting at chapter 1 collided with every
+      // book's first appendix — both had num.first() == 1. Detect appendix
+      // entries the same way chapter.typ does (rendered numbering starts
+      // with a letter) and exclude them: parts are a chapter-only concept.
+      let is-appendix = (el.numbering != none
+        and numbering(el.numbering, ..num).match(regex("^[A-Z]")) != none)
+      let hit = if is-appendix { none } else { parts.find(p => p.first-chapter == num.first()) }
       if hit != none {
         block(above: 1.3em, text(font: theme.sans, tracking: 0.16em,
           weight: "semibold", size: 10pt, upper(hit.title)))

@@ -17,6 +17,8 @@
 
 **Verification quickies:** `just test` (assert files + compile matrix) · `just demo book print` · open PDFs from `out/`.
 
+**Plan-vs-source parity:** plan code blocks are the SEMANTIC reference; shipped source may carry longer explanatory comments than the plan block shows. Reviewers diff code semantics, not comment text.
+
 ---
 
 ## File structure (locked by this plan)
@@ -676,9 +678,11 @@ Wide: <wide>this block escapes into the margin</wide>
     label-prefix: label-prefix,
     blockquote: body => tufte-quote(theme, body),
     scope: (
-      image: (path, alt: none) => image(bytes(reader(path-of(path), encoding: none)), alt: alt),
+      // forwards width/height/fit etc. so raw-typst image calls can size
+      image: (path, alt: none, ..args) => image(bytes(reader(path-of(path), encoding: none)), alt: alt, ..args.named()),
       sidenote: body => sidenote(theme: theme, body),
       marginnote: body => marginnote(theme: theme, body),
+      notefigure: notefigure,   // margin figures from raw-typst blocks
     ),
   )
 
@@ -816,8 +820,14 @@ footnote-to-sidenote transform.
 #let toc(theme, labels, parts: ()) = {
   show outline.entry.where(level: 1): it => {
     let divider = context {
-      let num = counter(heading).at(it.element.location())
-      let hit = parts.find(p => p.first-chapter == num.first())
+      let el = it.element
+      let num = counter(heading).at(el.location())
+      // appendices() restarts counter(heading) at 1, so a part with
+      // first-chapter: 1 collided with every book's first appendix.
+      // Exclude appendix entries (rendered numbering starts with a letter).
+      let is-appendix = (el.numbering != none
+        and numbering(el.numbering, ..num).match(regex("^[A-Z]")) != none)
+      let hit = if is-appendix { none } else { parts.find(p => p.first-chapter == num.first()) }
       if hit != none {
         block(above: 1.3em, text(font: theme.sans, tracking: 0.16em,
           weight: "semibold", size: 10pt, upper(hit.title)))
@@ -916,18 +926,25 @@ footnote-to-sidenote transform.
 ```typ
 #import "utils.typ": plain-text
 
-// Running heads: verso "N   CHAPTER", recto "SECTION   N". Skipped on pages
-// carrying <divider-page> or <no-folio> metadata, before <chapters-begin-here>,
-// and on chapter-opener pages (a level-1 heading on the page).
-#let folio(theme, alt-runners: (:)) = context {
+// Running heads: verso "N   CHAPTER", recto "SECTION   N", set flush with
+// the page's OUTER edge (negative pad extends the folio into the note
+// column — the header box only spans the text column). Skipped on pages
+// carrying <divider-page> or <no-folio> metadata, before
+// <chapters-begin-here>, on chapter-opener pages, and — in print — on the
+// page immediately before an opener (suppresses the blank filler versos
+// from recto starts; deliberately also silences content pages facing an
+// opener, matching the print-proven prototype. Tag-the-filler alternatives
+// are BISTABLE under layout iteration — probed at length; don't retry).
+#let folio(theme, note-ext: 0mm, media: "screen", alt-runners: (:)) = context {
   let pg = here().page()
   if query(<chapters-begin-here>).len() == 0 { return }
   let begin = query(<chapters-begin-here>).first().location().page()
   if pg < begin { return }
   let markers = query(selector(<divider-page>).or(selector(<no-folio>)))
   if markers.any(m => m.location().page() == pg) { return }
-  let h1-here = query(heading.where(level: 1)).filter(h => h.location().page() == pg)
-  if h1-here.len() > 0 { return }
+  let h1-pages = query(heading.where(level: 1)).map(h => h.location().page())
+  if h1-pages.contains(pg) { return }
+  if media == "print" and h1-pages.contains(pg + 1) { return }
   let shorten(t) = alt-runners.at(t, default: t)
   let numtxt = counter(page).display("1")
   let style(body) = text(font: theme.serif, size: theme.folio-size,
@@ -936,11 +953,14 @@ footnote-to-sidenote transform.
     let hs = query(heading.where(level: lvl).before(here()))
     if hs.len() == 0 { none } else { upper(shorten(plain-text(hs.last().body))) }
   }
-  if calc.even(pg) {
-    align(left, style([#numtxt#h(2em)#before(1)]))
+  // screen keeps the note column right on every page, so only print
+  // versos use the left-extended form
+  let verso = media == "print" and calc.even(pg)
+  if verso {
+    pad(left: -note-ext, align(left, style([#numtxt#h(2em)#before(1)])))
   } else {
     let title = if before(2) != none { before(2) } else { before(1) }
-    align(right, style([#title#h(2em)#numtxt]))
+    pad(right: -note-ext, align(right, style([#title#h(2em)#numtxt])))
   }
 }
 ```
@@ -963,6 +983,10 @@ footnote-to-sidenote transform.
 // The trailing `doc` param makes the show-chain form work; appendices()'s
 // own set-rule still overrides this chain for appendix numbering.
 #let begin-chapters(media, doc) = {
+  // print: force a recto BEFORE the marker + page-counter reset, so
+  // displayed page 1 lands on a physical odd page — keeping displayed
+  // parity aligned with physical recto/verso geometry forever after
+  if media == "print" { pagebreak(to: "odd", weak: true) }
   [#metadata(none) <chapters-begin-here>]
   counter(heading).update(0)
   set heading(numbering: "1.1.1")
@@ -970,6 +994,9 @@ footnote-to-sidenote transform.
   doc
 }
 
+// Recto starts via plain pagebreak(to: "odd") — folio() suppresses the
+// page before an opener instead of tagging fillers (tag-the-filler is
+// bistable under layout iteration; see runners.typ comment).
 #let chapter-break(media, split) = {
   if media == "print" and split == "odd" { pagebreak(to: "odd", weak: true) }
   else { pagebreak(weak: true) }
@@ -980,6 +1007,8 @@ footnote-to-sidenote transform.
 // across chapter files; breaks are injected as raw-typst between files.
 #let chapters(srcs, reader: none, media: "screen", split: "odd", ..md-args) = {
   assert(split in ("odd", "soft"), message: "chapters(): split must be \"odd\" or \"soft\", got " + repr(split))
+  // break BEFORE the first chapter too — openers start recto in print
+  chapter-break(media, split)
   let texts = srcs.map(s => if reader != none and s.ends-with(".md") { reader(s) } else { s })
   let break-md = if media == "print" and split == "odd" {
     "\n\n<!--raw-typst #pagebreak(to: \"odd\", weak: true) -->\n\n"
@@ -1081,11 +1110,13 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
   let ps = page-size(paper, media)
   let note-ext = paper.note-col + paper.note-gap
 
-  set document(title: if title == none { none } else { title }, author: authors.join(", "))
+  // author: pass the array through — document.author accepts arrays, and
+  // ().join(", ") is none, which set document rejects
+  set document(title: if title == none { none } else { title }, author: authors)
   show: marginalia.setup.with(..mc)
   set page(width: ps.width, height: ps.height,
     fill: if media == "screen" { theme.screen-bg } else { none },
-    header: folio(theme, alt-runners: alt-runners), header-ascent: 30%)
+    header: folio(theme, note-ext: note-ext, media: media, alt-runners: alt-runners), header-ascent: 30%)
   show: base-style.with(theme, labels, note-ext)
   show: chapter-heading-rules.with(theme, labels, note-ext, icons: icons)
   // MUST precede all content: ordering-sensitive (spike finding c)
@@ -1097,7 +1128,10 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
   if epigraphs != none { frontmatter-page(paper, media, epigraph-page(theme, epigraphs)) }
   frontmatter-page(paper, media, title-page(theme, title: title, subtitle: subtitle,
     authors: authors, release: release, publisher: publisher))
-  frontmatter-page(paper, media, copyright-page(theme, copyright: copyright, publisher: publisher))
+  // skip the copyright page entirely when there is nothing to put on it
+  if copyright != (:) or publisher != none {
+    frontmatter-page(paper, media, copyright-page(theme, copyright: copyright, publisher: publisher))
+  }
   frontmatter-page(paper, media, toc(theme, labels, parts: parts))
   if dedication != none { frontmatter-page(paper, media, dedication-page(theme, dedication)) }
   for (name, body) in front.pairs() {
@@ -1124,7 +1158,7 @@ chapters() manifest over one cmarker pass; sidecite via hidden bibliography.
   publisher: (name: "Example Press", website_url: "example.org"),
   release: "First Edition",
   copyright: (year: "2026", holders: "A. Demo Author",
-    isbn: (paperback: "978-1-0000-0000-1", ebook: "978-1-0000-0000-2")),
+    isbn: (paperback: "978-1-0000-0000-9", ebook: "978-1-0000-0001-6")),  // valid check digits — tiaoma validates
   dedication: "For everyone who reads the footnotes first.",
   epigraphs: ("A Typographer": "The margin is not empty space."),
   parts: ((title: "Part I: Threads", first-chapter: 1),),
@@ -1192,7 +1226,9 @@ Expected: `out/book-screen.pdf` (cream bg, notes right) and `out/book-print.pdf`
   show: base-style.with(theme, labels, paper.note-col + paper.note-gap)
   // MUST precede all content: ordering-sensitive (spike finding c)
   show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
-  if numbered-sections { set heading(numbering: "1.1.A.") }
+  // set inside a bare if{} never escapes the block — express the toggle
+  // as one unconditional set rule instead
+  set heading(numbering: if numbered-sections { "1.1.A." } else { none })
 
   // letterhead
   if type(from) == dictionary {
@@ -1272,11 +1308,13 @@ Expected: `out/book-screen.pdf` (cream bg, notes right) and `out/book-print.pdf`
     align(center + horizon, body))
   if barcode == none { none }
   else if type(barcode) == dictionary and barcode.at("review-copy", default: false) {
-    zone(text(font: theme.sans, size: 9pt, weight: "semibold", labels.review-copy))
+    // fill: black — cover() sets white text page-wide for the jacket
+    // panels; the white zone needs ink or the stamp is invisible
+    zone(text(font: theme.sans, size: 9pt, weight: "semibold", fill: black, labels.review-copy))
   } else if type(barcode) == dictionary and "isbn" in barcode {
     let digits = barcode.isbn.replace("-", "")
     zone[
-      #text(font: theme.mono, size: 7pt, "ISBN " + barcode.isbn)
+      #text(font: theme.mono, size: 7pt, fill: black, "ISBN " + barcode.isbn)
       #v(1mm)
       #tiaoma.ean(digits, options: (height: 18.0))  // if 0.3.0 names differ, see pkg manual in typst cache
     ]
@@ -1307,10 +1345,13 @@ Expected: `out/book-screen.pdf` (cream bg, notes right) and `out/book-print.pdf`
     ],
     // SPINE — auto-hidden under 80 pages (printer minimums)
     if page-count >= 80 {
-      rotate(90deg, box(width: cs.height)[
+      // -90deg (not +90): spine must read bottom-to-top, head tilting right.
+      // reflow: true is required — default reflow:false reserves the
+      // PRE-rotation footprint and the rotated text clips off-canvas.
+      align(center, rotate(-90deg, reflow: true, box(width: cs.height)[
         #align(horizon, text(size: 11pt, tracking: 0.14em,
           [#spine.at("author", default: none) #h(1fr) #upper(spine.at("title", default: ""))]))
-      ])
+      ]))
     },
     // FRONT (right panel)
     block(width: 100%, height: 100%, inset: paper.bleed + paper.safety + 6mm)[
@@ -1331,7 +1372,7 @@ Note: `image-fill` must be defined ABOVE `cover` in the file (Typst is order-sen
 
 - [ ] **Step 4: Re-export `spine-width`, `cover-size`, `cover`; `just test` → asserts PASS.**
 
-- [ ] **Step 5: `examples/cover/main.typ`** — solid-color background (`rect` fill, no photo needed), front/spine/back text, `barcode: (isbn: "978-1-0000-0000-1")`, `page-count: 228`. Add justfile recipe:
+- [ ] **Step 5: `examples/cover/main.typ`** — solid-color background (`rect` fill, no photo needed), front/spine/back text, `barcode: (isbn: "978-1-0000-0000-9")` (valid check digit — tiaoma's EANXChk rejects invalid ones), `page-count: 228`. Add justfile recipe:
 ```just
 cover: install
     mkdir -p out

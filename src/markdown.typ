@@ -1,5 +1,5 @@
 #import "@preview/cmarker:0.1.10" as cmarker
-#import "notes.typ": sidenote, marginnote, wideblock
+#import "notes.typ": sidenote, marginnote, notefigure, wideblock
 #import "typography.typ": tufte-quote
 
 // Renders CommonMark with the tuftelike scope pre-wired.
@@ -35,9 +35,11 @@
     label-prefix: label-prefix,
     blockquote: body => tufte-quote(theme, body),
     scope: (
-      image: (path, alt: none) => image(bytes(reader(path-of(path), encoding: none)), alt: alt),
+      // forwards width/height/fit etc. so raw-typst image calls can size
+      image: (path, alt: none, ..args) => image(bytes(reader(path-of(path), encoding: none)), alt: alt, ..args.named()),
       sidenote: body => sidenote(theme: theme, body),
       marginnote: body => marginnote(theme: theme, body),
+      notefigure: notefigure,   // margin figures from raw-typst blocks
     ),
   )
 

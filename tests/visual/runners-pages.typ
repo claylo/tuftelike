@@ -12,7 +12,7 @@
 #show: marginalia.setup.with(..mc)
 #set page(width: ps.width, height: ps.height,
   fill: if media == "screen" { rgb("FFFFF8") } else { none },
-  header: folio(theme, alt-runners: alt-runners))
+  header: folio(theme, note-ext: paper.note-col + paper.note-gap, media: media, alt-runners: alt-runners))
 
 // Page 1: front matter, strictly before <chapters-begin-here>. No folio.
 Front-matter page. This is before the main-matter boundary marker, so no
