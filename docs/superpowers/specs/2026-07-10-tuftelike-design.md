@@ -289,6 +289,54 @@ Nothing committed. `fonts/` is gitignored, loaded via `--font-path fonts/`; READ
 
 Manual `dy` as a requirement · per-.md raw-typst margin boilerplate · regex-as-only-syntax · duplicated `frontmatter_page` and margin constants · per-book `main.typ` show-rule piles · hardcoded TOC part dividers · `link_id` special-case table · even-page `page-offset-x` hack · `drafting` dependency · ignored `--input` wiring · snake/kebab argument mismatches.
 
+## Book styles (v0.2 direction, added 2026-07-13)
+
+The theme dict handles variation *within* one visual style (fonts, sizes, ink,
+leading, accent). Tufte's books also vary *structurally* — chapter-opener
+anatomy, section-head treatment, title-page composition, rule/accent usage.
+Structure lives in show-rules, so a **book style** is defined as:
+
+- a **theme overlay** (ordinary theme dict, gains an `accent` color key), plus
+- a small set of **variant enums** that existing show-rule code branches on:
+  `opener: "label-title" | "numeral"`, `heads: "italic" | "newthought"`, and
+  similar keys added only as the style matrix demands them.
+
+A style is then a NAMED PRESET DICT in `themes.typ` — data, not a code fork,
+same philosophy as paper presets. `style: "vdqi"` resolves via the same
+chain (explicit arg > style preset > default). The shipped defaults are
+retroactively the `beautiful-evidence` style (inherited from the prototype
+book, which was modeled on it).
+
+Candidate presets: `beautiful-evidence` (default), `vdqi`,
+`envisioning-information`, `visual-explanations`, `fresh-eyes`. Their
+concrete values come from the style-matrix worksheet
+(`docs/tufte-style-matrix.md`) — filled in from Clay's physical copies, the
+only reliable source for print specifics like accent inks and opener
+anatomy. Presets are added one at a time as matrix columns complete; an
+unfilled preset does not ship.
+
+## v0.2 scope (locked 2026-07-13)
+
+1. **Index integration with colophon** (Clay's Rust indexing tool —
+   extract → curate → render pipeline that inserts in-dexter markers into
+   sources and emits `glossary.typ`):
+   - `book-index()` becomes real: imports `in-dexter:0.7.2`, renders
+     `make-index()` as a two-column Tufte-styled backmatter page;
+     `index` label added to the labels dict.
+   - `index`/`index-main` join `md()`'s raw-typst scope, plus a bare
+     `#index[…]`/`#index-main[…]` regex tier (symmetric with the legacy
+     note tier) so annotated markdown works without wrapper comments.
+   - Version alignment: Typst imports are compile-time strings, so
+     tuftelike pins in-dexter exactly; colophon's emitted import version
+     is a CONFIG VALUE on the colophon side (no colophon release needed
+     to track a tuftelike bump). Both sides carry a pointer comment.
+2. Book styles per the section above, matrix-driven.
+3. `glossary()` backmatter wrapper styling colophon's `glossary.typ`
+   output (stretch).
+
 ## Future (explicitly deferred)
 
-Typst Universe publication · index generation (`in-dexter`) · additional classes ("and so on": report, article) · EPUB/HTML · pixel-based visual regression.
+Typst Universe publication (0.1.0 gate: recreate Clay's prior works at
+scale and hold up across the board — then publish and iterate in the open) ·
+additional classes ("and so on": report, article) · EPUB/HTML ·
+pixel-based visual regression.

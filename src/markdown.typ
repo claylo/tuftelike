@@ -1,4 +1,7 @@
 #import "@preview/cmarker:0.1.10" as cmarker
+// VERSION PIN: keep in-dexter in lockstep with backmatter.typ and with
+// colophon's configured emit version.
+#import "@preview/in-dexter:0.7.2": index, index-main
 #import "notes.typ": sidenote, marginnote, notefigure, wideblock
 #import "typography.typ": tufte-quote
 
@@ -48,8 +51,21 @@
       sidenote: body => sidenote(theme: theme, body),
       marginnote: body => marginnote(theme: theme, body),
       notefigure: notefigure,   // margin figures from raw-typst blocks
+      index: index,             // in-dexter markers from raw-typst blocks
+      index-main: index-main,   // (colophon's render stage emits these)
     ),
   )
+
+  // Bare index markers as plain markdown text (flat bracket form only —
+  // hierarchical #index("parent", "child") needs a raw-typst block, where
+  // the scoped functions above handle it). Lets colophon annotate .md
+  // sources directly. -main matched first: it contains the plain prefix.
+  let index-match = regex("#index(-main)?\\[((?s).*?)\\]")
+  show index-match: it => {
+    let m = it.text.matches(index-match).first()
+    if m.captures.at(0) != none { index-main(m.captures.at(1)) }
+    else { index(m.captures.at(1)) }
+  }
 
   // Continuity tier: legacy #note[...] regex + ```note fences, from the prototype era.
   // Legacy tier renders UNNUMBERED (marginnote): the prototype book's

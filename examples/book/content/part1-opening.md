@@ -20,10 +20,10 @@ interrupting.
 > all without breaking stride.
 
 None of this requires exotic typesetting. It requires a decision, made
-early, to treat the margin as addressable space rather than leftover
+early, to treat the margin #index-main[margin] as addressable space rather than leftover
 space. The chapters that follow work through what changes once you make
 that decision — starting with the humblest unit of all: the single
-numbered note, anchored to one word, answerable in one breath.
+numbered note, #index[margin note] anchored to one word, answerable in one breath.
 
 [^opening]: This is the thesis of the whole book, if you want it in one
 sentence: margins are read differently than body text, so they should be

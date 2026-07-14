@@ -31,3 +31,8 @@
   extensions: instructional-extensions(default-theme))
 #appendices(("content/appendix-tooling.md",), reader: reader,
   media: resolve-media(), content-root: "content")
+
+// Back-of-book index over the #index markers scattered through the
+// chapters (colophon inserts these automatically in a real workflow).
+#pagebreak(to: if resolve-media() == "print" { "odd" } else { none }, weak: true)
+#book-index(theme: default-theme, labels: default-labels)

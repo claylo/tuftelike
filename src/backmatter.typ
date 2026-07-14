@@ -18,8 +18,17 @@
   if hidden { show bibliography: none; bib } else { bib }
 }
 
-// Index hook — deliberate no-op in v0.1. Reserved so books can call
-// #book-index() today and get a generated index in a future release
-// (in-dexter integration is the planned path; see the design doc's
-// Future section). Emits nothing.
-#let book-index() = none
+// Back-of-book index over in-dexter markers (#index[…] / #index-main[…]).
+// VERSION PIN: 0.7.2 must match the version colophon is configured to
+// emit in its import line (colophon-side config value) — Typst imports
+// are compile-time strings, so the template pins exactly.
+// Substantive entries (index-main) render bold per in-dexter's fmt.
+#let book-index(theme: (:), labels: (:), columns: 2) = {
+  import "@preview/in-dexter:0.7.2" as in-dexter
+  set text(size: theme.at("note-size", default: 9pt))
+  set par(justify: false)
+  heading(level: 1, numbering: none, labels.at("index", default: "Index"))
+  // use-page-counter: entries must cite the book's DISPLAYED folios (the
+  // counter resets at begin-chapters), not physical page indices
+  std.columns(columns, in-dexter.make-index(title: none, outlined: false, use-page-counter: true))
+}
