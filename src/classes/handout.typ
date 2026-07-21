@@ -14,13 +14,13 @@
   abstract: none, document-number: none, distribution: none,
   footer-content: (none, none),   // (first-page content, rest-page content)
   toc: false, bib: none,
-  theme: (:), labels: (:),
+  theme: (:), presets: (:), theme-preset: auto, labels: (:),
   footnotes-as-sidenotes: true,
   doc,
 ) = {
   let media = resolve-media(media: media)
   let paper = resolve-paper(paper)
-  let theme = resolve-theme(theme)
+  let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
   let labels = resolve-labels(labels)
   let m = paper.handout-margin
   // note column occupies the wide right margin; handouts are one-sided —

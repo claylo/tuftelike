@@ -15,13 +15,13 @@
   copyright: (:), dedication: none, epigraphs: none,
   front: (:),                  // (introduction: content, preface: content, acknowledgments: content)
   parts: (), alt-runners: (:), icons: (:),
-  theme: (:), labels: (:), bib: none, bib-visible: true,
+  theme: (:), presets: (:), theme-preset: auto, labels: (:), bib: none, bib-visible: true,
   footnotes-as-sidenotes: true,
   doc,
 ) = {
   let media = resolve-media(media: media)
   let paper = resolve-paper(paper)
-  let theme = resolve-theme(theme)
+  let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
   let labels = resolve-labels(labels)
   let mc = marginalia-config(paper, media, page-count-range: page-count-range)
   let ps = page-size(paper, media)

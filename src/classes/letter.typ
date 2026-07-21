@@ -12,13 +12,13 @@
   closing: "Sincerely,", signature: none,   // content|image|str
   enclosures: (), cc: (),
   numbered-sections: false,
-  theme: (:), labels: (:),
+  theme: (:), presets: (:), theme-preset: auto, labels: (:),
   footnotes-as-sidenotes: true,
   doc,
 ) = {
   let media = resolve-media(media: media)
   let paper = resolve-paper(paper)
-  let theme = resolve-theme(theme)
+  let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
   let labels = resolve-labels(labels)
   let m = paper.letter-margin
   // note column occupies the wide right margin; letters are one-sided

@@ -3,7 +3,7 @@
 
 #import "geometry.typ": papers, resolve-media, resolve-paper, page-size, marginalia-config
 #import "labels.typ": default-labels, resolve-labels
-#import "themes.typ": default-theme, resolve-theme
+#import "themes.typ": default-theme, theme-presets, resolve-theme
 #import "utils.typ": plain-text, lead-split
 #import "typography.typ": newthought, lead-smallcaps, tufte-quote, base-style
 #import "notes.typ": sidenote, marginnote, notefigure, sidecite, wideblock, footnote-transform

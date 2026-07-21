@@ -16,3 +16,13 @@
 #assert(default-labels.appendices == "Appendices")
 #assert(default-labels.about-author == "About the Author")
 #assert(default-labels.colophon == "Colophon")
+// preset resolution chain: user dict > preset overlay > defaults
+#let variants = ("trade": (body-size: 10pt, toc-pagenums: "flush"))
+#let t5 = resolve-theme((note-size: 8pt), presets: variants, preset: "trade")
+#assert(t5.body-size == 10pt)        // preset overlay applied
+#assert(t5.toc-pagenums == "flush")
+#assert(t5.note-size == 8pt)         // user dict rides along
+#assert(t5.serif.first() == "ETbb")  // untouched keys fall through
+#assert(resolve-theme((body-size: 12pt), presets: variants, preset: "trade").body-size == 12pt) // user beats preset
+#assert(resolve-theme((:), presets: variants).body-size == 11pt) // no selection -> defaults (no theme input in test runs)
+#assert(resolve-theme((:), preset: "beautiful-evidence").body-size == 11pt) // built-in identity overlay

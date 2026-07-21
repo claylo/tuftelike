@@ -14,10 +14,11 @@ test: install
     for f in tests/assert/*.typ; do echo "== $f"; {{typst}} compile --root . --font-path fonts "$f" "out/assert-$(basename "$f" .typ).pdf" || exit 1; done
     if [ -x tests/compile-matrix.sh ]; then tests/compile-matrix.sh; fi
 
-# build an example: just demo book print
-demo target media="screen": install
+# build an example: just demo book print — optional theme flips a named
+# preset variant: just demo book print trade -> out/book-print-trade.pdf
+demo target media="screen" theme="": install
     mkdir -p out
-    {{typst}} compile --root . --font-path fonts --input "media={{media}}" "examples/{{target}}/main.typ" "out/{{target}}-{{media}}.pdf"
+    {{typst}} compile --root . --font-path fonts --input "media={{media}}" {{ if theme != "" { "--input theme=" + theme } else { "" } }} "examples/{{target}}/main.typ" "out/{{target}}-{{media}}{{ if theme != "" { "-" + theme } else { "" } }}.pdf"
 
 # build the wrap-cover example (no media toggle — cover is a single compile target)
 cover: install

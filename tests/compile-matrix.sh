@@ -12,6 +12,10 @@ for target in book letter handout; do
   done
 done
 
+echo "== book/print themed (--input theme=trade)"
+env -u TYPST_PACKAGE_PATH typst compile --root . --font-path fonts --input media=print --input theme=trade \
+  "examples/book/main.typ" "out/matrix-book-print-trade.pdf" || fail=1
+
 echo "== cover"
 env -u TYPST_PACKAGE_PATH typst compile --root . --font-path fonts \
   examples/cover/main.typ out/matrix-cover.pdf || fail=1

@@ -182,7 +182,7 @@ Also wired: `blockquote:` hook → Tufte quote style (attributed epigraph varian
 - Stacks (theme-overridable): serif `ETbb → ETBembo → Palatino → Georgia`; sans `Gill Sans MT → Fira Sans → Helvetica Neue → Arial`; mono `Consolas → Menlo → Monaco`.
 - Body 11pt serif, fill `luma(30)`. Headings italic serif (20/18/16/14/12pt), H1 as chapter opener (below), H2 with gray sans number, H3 with optional icon.
 - `newthought[…]` and automatic `lead-smallcaps` (small-caps to first comma or third space) on chapter-opening paragraphs.
-- **Theme resolution:** user arg > theme preset > default (tufte-style's chain). Theme dict covers fonts, sizes, colors (text fill, screen background, accent), note styling, and `draft: bool` (adds DRAFT mark from `labels`).
+- **Theme resolution:** user arg > theme preset > default (tufte-style's chain). Theme dict covers fonts, sizes, colors (text fill, screen background, accent), note styling, and `draft: bool` (adds DRAFT mark from `labels`). Preset SELECTION (landed 2026-07-21, pulled forward from v0.2): classes take `presets:` (named overlays merged over the built-in `theme-presets`; `beautiful-evidence` = empty overlay = the defaults) and `theme-preset: auto`, which resolves explicit arg > `--input theme=<name>` > none — one book source compiles to multiple stylings (`just demo book print trade`). Shelf-matrix presets land as `theme-presets` entries.
 - `labels.typ`: localizable strings dict (`chapter`, `appendix`, `appendices`, `contents`, `about-author`, `colophon`, `draft`, `figure`, `table`, `code`, letter labels like `enclosures`), merged the same way.
 
 ## Regions

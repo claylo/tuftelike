@@ -45,10 +45,10 @@
   paper: "crown-quarto", page-count: 200, stock: "lulu-standard-bw",
   background: none,
   front: (:), spine: (:), back: (:),
-  barcode: none, theme: (:), labels: (:),
+  barcode: none, theme: (:), presets: (:), theme-preset: auto, labels: (:),
 ) = {
   let paper = resolve-paper(paper)
-  let theme = resolve-theme(theme)
+  let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
   let labels = resolve-labels(labels)
   let sw = spine-width(page-count, stock)
   let cs = cover-size(paper, page-count, stock)

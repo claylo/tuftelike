@@ -1,4 +1,5 @@
 #import "@local/tuftelike:0.1.0": *
+#import "themes.typ": book-presets
 #let reader = (p, ..a) => read(p, ..a.named())
 
 #show: book.with(
@@ -18,6 +19,10 @@
     column. Everything that follows tries to make that somewhere useful.
   ]),
   parts: ((title: "Part I: Threads", first-chapter: 1),),
+  // named theme variants from the (symlinkable) library file — flipped at
+  // compile time without editing this one: `just demo book print trade`
+  // (or --input theme=trade); omit for the Tufte defaults
+  presets: book-presets,
   // bundled keyword→icon map; root-absolute path because the image() call
   // inside instructional-icons resolves against the package, not this file
   icons: instructional-icons(assets: "/examples/_assets"),

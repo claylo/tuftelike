@@ -272,6 +272,46 @@ side wins on key collisions):
 )
 ```
 
+### Theme variants: flip at compile time
+
+Every class also takes `presets:` — named theme overlays selected with
+`--input theme=<name>` (same pattern as `media`), so one source file can
+print a book more than one way without edits:
+
+```typ
+#show: book.with(
+  // …
+  theme: (serif: my-fonts),                // unconditional — applies to every variant
+  presets: ("trade": (body-size: 10pt, toc-pagenums: "flush")),
+)
+```
+
+```sh
+just demo book print          # Tufte defaults (= the beautiful-evidence preset)
+just demo book print trade    # the de-Tufted variant, out/book-print-trade.pdf
+```
+
+Resolution: `theme:` dict > selected preset overlay > defaults. Selection:
+`theme-preset:` argument > `--input theme=<name>` > none. Built-in preset
+names live in `theme-presets` (`beautiful-evidence` selects the defaults);
+style presets from the Tufte shelf land there as they're proven.
+
+**Shared preset library.** `presets:` takes any dict, so keep your variants
+in one file and symlink it into each book project instead of copy-pasting
+(see `examples/book/themes.typ`):
+
+```sh
+ln -s ~/writing/my-themes.typ themes.typ
+```
+
+```typ
+#import "themes.typ": book-presets
+#show: book.with(presets: book-presets, /* … */)
+```
+
+Being a normal module, the library file can hold helper functions, shared
+font stacks, and its own imports.
+
 > **Arrays replace wholesale, not merge.** `theme: (serif: ("Georgia",))`
 > drops the entire fallback chain — you get Georgia only, no Palatino, no
 > ETbb. Pass the full stack you want whenever you override a font array.
