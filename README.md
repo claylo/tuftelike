@@ -276,6 +276,17 @@ side wins on key collisions):
 > drops the entire fallback chain — you get Georgia only, no Palatino, no
 > ETbb. Pass the full stack you want whenever you override a font array.
 
+The book contents page follows the print-proven layout: part and appendix
+group headers at the outline margin, chapter numbers right-aligned in their
+own column, italic chapter titles with upright section entries one level
+deeper, and page numbers tucked behind each title (Tufte's ragged style).
+`theme: (toc-pagenums: "flush")` pushes page numbers to the right edge of
+the line instead. `about-author()` and `colophon()` register themselves in
+the contents and the PDF bookmarks automatically; the first unnumbered
+section after the chapters and appendices opens the backmatter group with
+a separator gap. Rename their entries (and the `APPENDICES` header) via
+`labels: (about-author: …, colophon: …, appendices: …)`.
+
 ## Extensions
 
 `extensions:` (on `md()`, and forwarded through `chapters()` /

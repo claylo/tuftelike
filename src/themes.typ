@@ -9,6 +9,10 @@
   text-fill: luma(30),
   screen-bg: rgb("FFFFF8"),
   note-leading: 0.5em,
+  // TOC folio placement: "ragged" = page number follows the title after a
+  // fixed gap (prototype-proven Tufte contents); "flush" = pushed to the
+  // right edge of the entry line
+  toc-pagenums: "ragged",
   draft: false,
 )
 // Shallow merge, right side wins. Arrays REPLACE wholesale: overriding serif

@@ -71,31 +71,95 @@
   }
 ]
 
-// TOC with data-driven part dividers. parts: ((title: "…", first-chapter: 1), …)
+// TOC ported from the prototype book's print-proven contents treatment.
+// parts: ((title: "…", first-chapter: 1), …) drives the part dividers —
+// data-driven where the prototype hardcoded chapter numbers.
+//
+// Layout contract (page-against-page vs the prototype's first-print PDF):
+// - PART / APPENDICES headers sit at the outline margin: serif semibold,
+//   0.16em tracking, caps, 1.3em above.
+// - Entry rows are padded 2em in from those headers. Chapter/appendix
+//   numbers right-align in their column via a two-space pad on single-char
+//   prefixes (two ETbb spaces ≈ one digit).
+// - Level-2 rows indent one prefix column deeper (entry.indented), upright,
+//   1pt smaller. Appendices and unnumbered sections list no second tier.
+// - Unnumbered entries (front sections, About the Author, Colophon, Index)
+//   render italic with an empty prefix column; the first one after the
+//   numbered body opens the backmatter group with a 1.2em separator gap.
+// - theme.toc-pagenums: "ragged" (default) sets the folio right after the
+//   title — Tufte contents style; "flush" pushes it to the line's right edge.
 #let toc(theme, labels, parts: ()) = {
-  show outline.entry.where(level: 1): it => {
-    let divider = context {
-      let el = it.element
-      let num = counter(heading).at(el.location())
-      // Appendix headings restart counter(heading) at 1 too (mainmatter.typ's
-      // appendices()), so a part starting at chapter 1 collided with every
-      // book's first appendix — both had num.first() == 1. Detect appendix
-      // entries the same way chapter.typ does (rendered numbering starts
-      // with a letter) and exclude them: parts are a chapter-only concept.
-      let is-appendix = (el.numbering != none
-        and numbering(el.numbering, ..num).match(regex("^[A-Z]")) != none)
-      let hit = if is-appendix { none } else { parts.find(p => p.first-chapter == num.first()) }
-      if hit != none {
-        block(above: 1.3em, text(font: theme.sans, tracking: 0.16em,
-          weight: "semibold", size: 10pt, upper(hit.title)))
+  let pagenums = theme.at("toc-pagenums", default: "ragged")
+  assert(pagenums in ("ragged", "flush"),
+    message: "theme.toc-pagenums must be \"ragged\" or \"flush\", got " + repr(pagenums))
+  // ragged gap is literal NO-BREAK spaces (same advance as a space in the
+  // print-proven fonts, so geometry parity holds): text never stretches
+  // under justification, and the line breaker can never strand the folio
+  // alone on a wrapped line — an overlong title breaks among its own
+  // words instead
+  let folio-gap = if pagenums == "ragged" { "\u{a0}" * 8 } else { h(1fr) }
+  // sticky: a group header never widows at a page bottom — it always
+  // travels with the entry that triggered it
+  let group-header(title) = block(above: 1.3em, sticky: true,
+    text(font: theme.serif, tracking: 0.16em, weight: "semibold", upper(title)))
+
+  // sticky: a chapter row never strands from its first section row —
+  // the page break moves before the chapter instead
+  show outline.entry.where(level: 1): set block(above: 1.1em, sticky: true)
+  show outline.entry: it => context {
+    let el = it.element
+    // custom rendering forfeits the default show's link — re-add it
+    let row(prefix, inner) = link(el.location(),
+      pad(left: 2em, it.indented(prefix, inner, gap: 1.5em)))
+    if it.prefix() == none {
+      // unnumbered sections keep their sub-heads out of the contents
+      if it.level == 1 {
+        // inclusive: false — .before() otherwise includes el itself (an
+        // unnumbered heading), which would defeat the numbered-predecessor
+        // test below and silently drop the gap
+        let prior = query(selector(heading).before(el.location(), inclusive: false))
+        if prior.len() > 0 and prior.last().numbering != none {
+          // first unnumbered entry after the numbered body — open the
+          // backmatter group with an empty spacer block
+          block(above: 1.2em, text(none))
+        }
+        row(" ", text(font: theme.serif, style: "italic", it.body()) + folio-gap + it.page())
+      }
+    } else {
+      let prefix = plain-text(it.prefix()).trim(".")
+      // appendix = rendered numbering starts with a letter (same detection
+      // as chapter.typ). Appendix counters restart at 1 like chapters, so
+      // they must dodge parts.find; they also list no second tier.
+      let is-appendix = prefix.match(regex("^[A-Z]")) != none
+      if it.level == 1 or not is-appendix {
+        if it.level == 1 {
+          let num = counter(heading).at(el.location())
+          if is-appendix {
+            if num.first() == 1 { group-header(labels.appendices) }
+          } else {
+            let hit = parts.find(p => p.first-chapter == num.first())
+            if hit != none { group-header(hit.title) }
+          }
+        }
+        // poor-man's right alignment: two spaces ≈ one digit width
+        let padded = if prefix.len() == 1 { "  " + prefix } else { prefix }
+        let size = if it.level == 1 { theme.body-size } else { theme.body-size - 1pt }
+        let body-style = if it.level == 1 { "italic" } else { "normal" }
+        row(
+          text(font: theme.serif, style: "normal", size: size, padded),
+          text(font: theme.serif, style: body-style, size: size, it.body())
+            + folio-gap + it.page())
       }
     }
-    divider
-    it
   }
-  show outline.entry: set text(font: theme.serif, style: "italic")
-  // Tufte TOC: whitespace gap, not dot leaders. fill lives on outline.entry
-  // in Typst 0.15 — outline() itself has no fill: parameter.
-  set outline.entry(fill: h(1em))
-  outline(title: labels.contents, depth: 2)
+  // Title rendered directly, not via outline(title:) — the class-level
+  // chapter-opener rule would style the outline's title heading as an
+  // opener and add its 2.5em drop. v(2.1em) is calibrated, not derived:
+  // it closes the measured title→first-entry distance page-against-page
+  // with the prototype's first-print PDF (47.5pt at 11pt body; the
+  // prototype routed its title through a generic h1 rule whose heading
+  // block spacing tuftelike's flow doesn't otherwise reproduce).
+  text(size: theme.h1-size, style: "italic", labels.contents)
+  v(2.1em)
+  outline(title: none, depth: 2)
 }

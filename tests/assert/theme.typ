@@ -11,3 +11,8 @@
 #let t2 = resolve-theme((serif: ("Override",)))
 #assert(t2.serif == ("Override",)) // arrays replace wholesale
 #assert(t2.body-size == 11pt) // untouched keys preserved through array override
+#assert(default-theme.toc-pagenums == "ragged") // prototype-proven default
+#assert(resolve-theme((toc-pagenums: "flush")).toc-pagenums == "flush")
+#assert(default-labels.appendices == "Appendices")
+#assert(default-labels.about-author == "About the Author")
+#assert(default-labels.colophon == "Colophon")

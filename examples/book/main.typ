@@ -32,6 +32,15 @@
 #appendices(("content/appendix-tooling.md",), reader: reader,
   media: resolve-media(), content-root: "content")
 
+#about-author(default-theme)[
+  A. Demo Author has been writing in the margins of other people's books
+  for twenty years and finally decided to typeset some margins of their own.
+]
+#colophon(default-theme)[
+  Set in ETbb and Gill Sans with the tuftelike template. \
+  Composed on macOS; proofed at 6×9 on uncoated stock.
+]
+
 // Back-of-book index over the #index markers scattered through the
 // chapters (colophon inserts these automatically in a real workflow).
 #pagebreak(to: if resolve-media() == "print" { "odd" } else { none }, weak: true)

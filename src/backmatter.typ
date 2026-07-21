@@ -1,13 +1,26 @@
 // About-the-author / colophon pages + bibliography wiring.
-#let about-author(theme, body) = page(header: none, footer: none)[
+#import "labels.typ": default-labels
+
+// Outlined-but-invisible heading: registers the page with the TOC and the
+// PDF bookmarks without disturbing the page's own display typography. The
+// element survives `show heading: none` for introspection — same mechanism
+// references() uses to resolve citations under `show bibliography: none`.
+#let toc-entry(title) = {
+  show heading: none
+  heading(level: 1, numbering: none, title)
+}
+
+#let about-author(theme, body, labels: default-labels) = page(header: none, footer: none)[
   #metadata(none) <no-folio>
-  #text(font: theme.sans, size: 10pt, tracking: 0.16em, upper("About the Author"))
+  #toc-entry(labels.about-author)
+  #text(font: theme.sans, size: 10pt, tracking: 0.16em, upper(labels.about-author))
   #v(1.5em)
   #body
 ]
 
-#let colophon(theme, body) = page(header: none, footer: none)[
+#let colophon(theme, body, labels: default-labels) = page(header: none, footer: none)[
   #metadata(none) <no-folio>
+  #toc-entry(labels.colophon)
   #set text(size: 9pt)
   #align(center + bottom, body)
 ]
