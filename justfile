@@ -6,12 +6,18 @@ install:
     mkdir -p "{{pkgdir}}"
     ln -sfn "$(pwd)" "{{pkgdir}}/0.1.0"
 
-# compile-time assertion tests + compile matrix
-test: install
+# wipe build output (out/ is throwaway; every recipe recreates what it needs)
+clean:
+    rm -rf out
+
+# lint + compile-time asserts + compile matrix + font-swap render test + role coverage
+test: clean install
     mkdir -p out
     tests/lint-hardcoded.sh
     for f in tests/assert/*.typ; do echo "== $f"; {{typst}} compile --root . --font-path fonts "$f" "out/assert-$(basename "$f" .typ).pdf" || exit 1; done
     if [ -x tests/compile-matrix.sh ]; then tests/compile-matrix.sh; fi
+    tests/font-swap.sh
+    tests/role-coverage.sh
 
 # build an example: just demo book print — optional theme flips a named
 # preset variant: just demo book print trade -> out/book-print-trade.pdf
@@ -44,3 +50,12 @@ outdated:
 update *pkgs:
     bin/typst-deps update {{pkgs}}
     just test
+
+# keep the current out/ as a named baseline: snapshots/<label> (default = timestamp)
+snapshot label=`TZ=America/New_York date +%Y-%m-%d-%H%M`:
+    mkdir -p snapshots && rm -rf "snapshots/{{label}}" && cp -R out "snapshots/{{label}}"
+    @echo "snapshot: snapshots/{{label}}"
+
+# geometry-diff every PDF in out/ against a snapshot (line bboxes + font/size)
+parity label:
+    tests/parity.sh "snapshots/{{label}}" out

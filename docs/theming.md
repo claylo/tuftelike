@@ -43,8 +43,10 @@ spacing keys and a `case` transform. `body`, `note`, `folio`, `heading.h2`,
 distinct piece of typography the package renders. There is no typography anywhere in
 `src/` that is not a role: a lint enforces it.
 
-**The class stores the theme; helpers read it.** `book()`, `letter()`, `handout()`,
-`cover()` resolve the theme once and write it into `state("tuftelike")`. Every
+**The class stores the theme; helpers read it.** All four classes — `book()`,
+`letter()`, `handout()`, `cover()` — take the same `theme:` / `presets:` /
+`theme-preset:` arguments, resolve the theme the same way, and write it into
+`state("tuftelike")` (`tests/assert/ambient-classes.typ` guards this). Every
 content-level helper — `sidenote`, `newthought`, `part-divider`, `about-author`,
 `md`, … — reads it from there. You never thread `theme:` through your own code.
 
@@ -448,6 +450,17 @@ tell you if you forget.
   work with no class installed.
 - `tests/assert/ambient.typ` — a `book()` with a custom sans; helpers called without
   `theme:` see it (`current-theme()` asserted inside the doc).
+- `tests/assert/ambient-classes.typ` — the same guarantee for `letter()` and
+  `handout()`; every class publishes its theme and labels, not just book.
+- `tests/font-swap.sh` — the render-level guarantee. Compiles a fixture per class
+  (`tests/font-swap/*.typ`) that exercises every helper and region under a theme
+  whose three aliases point at Typst's *embedded* fonts, then `pdffonts` must show
+  **no default-stack family** (ETbb, Gill Sans, Consolas, Fira, Palatino, Helvetica,
+  Menlo, …). Any leak means something ignored the theme — a hardcoded font, a class
+  that didn't publish its state, a missing show rule. This is the test that would
+  have caught both field bugs.
+- `tests/role-coverage.sh` — every key under `default-theme` must be consumed
+  somewhere in `src/`. A knob nobody reads is a lie to whoever sets it.
 - `tests/lint-hardcoded.sh` — runs in `just test`; greps `src/` (minus `themes.typ`)
   for `size:`/`tracking:`/`above:`/… literals, `weight: "`, `luma(`/`rgb(`, `font: ("`,
   `justify: true`, `v(Nem)`. Any hit fails. `// lint-ok: <reason>` opts out a line
@@ -456,7 +469,9 @@ tell you if you forget.
   was verified byte-identical against pre-change baselines — line bounding boxes and
   font/size per span via `mutool draw -F stext` — for the book (print and screen),
   the TOC fixture, letter, handout, and cover. Change a default only with the same
-  check; the method is in `record/handoffs/`.
+  check — it's two recipes: `just snapshot before` (copies `out/` to
+  `snapshots/before`), make the change, `just test`, `just parity before`
+  (geometry-diffs every PDF; diffs land in `out/parity/`).
 
 ## 11. Design notes and non-goals
 

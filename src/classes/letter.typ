@@ -36,6 +36,8 @@
   show: base-style.with(theme, labels, paper.note-col + paper.note-gap, media: media)
   // MUST precede all content: ordering-sensitive (spike finding c)
   show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
+  // helpers read this via current-theme()/current-labels() — never thread it
+  state("tuftelike").update((media: media, paper: paper, theme: theme, labels: labels))
   // NOTE: `set heading(numbering: if … { … } else { none })`, not the
   // plan's `if numbered-sections { set heading(...) }`. A `set` rule
   // inside a bare `if { }` with no matching content in that SAME block

@@ -4,3 +4,4 @@ tests/fixtures/proto/
 .envrc.local
 *.pdf
 .DS_Store
+snapshots/

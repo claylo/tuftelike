@@ -50,6 +50,8 @@
   let paper = resolve-paper(paper)
   let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
   let labels = resolve-labels(labels)
+  // helpers read this via current-theme()/current-labels() — never thread it
+  state("tuftelike").update((media: none, paper: paper, theme: theme, labels: labels))
   let sw = spine-width(page-count, stock)
   let cs = cover-size(paper, page-count, stock)
   set page(width: cs.width, height: cs.height, margin: 0mm,
