@@ -5,7 +5,7 @@
 // Typst imports are file-scoped, not block-scoped — keep them here, never
 // inside a show-rule closure.
 #import "utils.typ": plain-text
-#import "themes.typ": role, role-args, styled, current-theme
+#import "themes.typ": role, role-args, styled, with-theme
 #import "labels.typ": current-labels
 
 #let chapter-heading-rules(theme, labels, note-ext, icons: (:), doc) = {
@@ -46,8 +46,7 @@
 // current-labels) — pass explicitly only to override.
 #let part-divider(number, title, theme: auto, labels: auto) = page(header: none, footer: none)[
   #metadata(none) <divider-page>
-  #context {
-    let th = if theme == auto { current-theme() } else { theme }
+  #with-theme(theme, th => {
     let lb = if labels == auto { current-labels() } else { labels }
     let pd = role(th, "part-divider")
     align(center)[
@@ -56,5 +55,5 @@
       #v(pd.gap)
       #styled(th, "part-title", title)
     ]
-  }
+  })
 ]

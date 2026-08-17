@@ -1,5 +1,5 @@
 #import "@preview/marginalia:0.3.1" as marginalia
-#import "themes.typ": role, styled, current-theme
+#import "themes.typ": role, styled, with-theme
 
 // Tufte convention is arabic superscript numerals, not marginalia's default
 // symbol cycle (note-markers-alternating: ● ○ ◆ ◇ …). `numbering:` on
@@ -12,13 +12,12 @@
 // Note body styled by the "note" role. theme: auto reads the class's
 // stored theme inside context — the fix for the silent fallback-font bug
 // (a caller that forgot to thread `theme:` used to get hardcoded Gill Sans).
-#let note-body(theme, body) = context {
-  let th = if theme == auto { current-theme() } else { theme }
+#let note-body(theme, body) = with-theme(theme, th => {
   // block + set par, NOT par(..)[..]: wrapping in par() silently DROPS
   // block-level content (headings/lists in note bodies) and triggers
   // "parbreak ignored" warnings on markdown-rendered footnotes
   styled(th, "note", block({ set par(leading: role(th, "note").leading); body }))
-}
+})
 
 // Numbered Tufte sidenote. dy stays as an ESCAPE HATCH; marginalia positions
 // and collision-avoids automatically.

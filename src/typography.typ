@@ -1,9 +1,5 @@
 #import "utils.typ": plain-text, lead-split
-#import "themes.typ": role, role-args, styled, current-theme
-
-// theme: auto reads the class's stored theme (inside context); pass a
-// theme to override. Shared by every content-level helper.
-#let with-theme(theme, f) = if theme == auto { context f(current-theme()) } else { f(theme) }
+#import "themes.typ": role, role-args, styled, current-theme, with-theme
 
 #let newthought(body, theme: auto) = with-theme(theme, th => {
   v(role(th, "newthought").above, weak: true)

@@ -1,6 +1,6 @@
 // About-the-author / colophon pages + bibliography wiring.
 #import "labels.typ": default-labels, current-labels
-#import "themes.typ": role, role-args, styled, current-theme
+#import "themes.typ": role, role-args, styled, with-theme
 
 // Outlined-but-invisible heading: registers the page with the TOC and the
 // PDF bookmarks without disturbing the page's own display typography. The
@@ -13,11 +13,10 @@
 
 // theme/labels: auto reads the class's stored values inside context; pass
 // explicitly only to override.
-#let resolve-ambient(theme, labels, f) = context {
-  let th = if theme == auto { current-theme() } else { theme }
+#let resolve-ambient(theme, labels, f) = with-theme(theme, th => {
   let lb = if labels == auto { current-labels() } else { labels }
   f(th, lb)
-}
+})
 
 #let about-author(body, theme: auto, labels: auto) = page(header: none, footer: none,
   resolve-ambient(theme, labels, (th, lb) => {

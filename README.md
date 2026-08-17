@@ -280,6 +280,8 @@ Rules of the road:
   `src/themes.typ` — every size, tracking, weight, colour, and gap the
   package renders is there and nowhere else (`tests/lint-hardcoded.sh`
   enforces it). Its values ARE the print-proven Tufte look.
+- **Long-form reference:** [`docs/theming.md`](docs/theming.md) — every role, key
+  by key, plus recipes and the extension primitives.
 - **Helpers read the theme for you.** `sidenote`, `marginnote`,
   `newthought`, `tufte-quote`, `md`, `part-divider`, `about-author`,
   `colophon`, `book-index`, `instructional-extensions` all pick up the

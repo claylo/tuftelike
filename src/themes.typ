@@ -217,3 +217,10 @@
   let s = state("tuftelike").get()
   if s == none { default-theme } else { s.at("theme", default: default-theme) }
 }
+
+// Helper-level `theme:` semantics: auto = the ambient theme; a dict is a
+// PARTIAL overlay deep-merged over it (a full theme merges to itself). Same
+// contract as `theme:` on the classes. Call inside context.
+#let with-theme(theme, f) = if theme == auto { context f(current-theme()) } else {
+  context f(deep-merge(current-theme(), theme))
+}
