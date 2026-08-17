@@ -37,13 +37,8 @@ Start a new project from the bundled template:
 
 ```
 typst init @local/tuftelike:0.1.0 my-book
-cd my-book && env -u TYPST_PACKAGE_PATH typst compile main.typ
+cd my-book && typst compile main.typ
 ```
-
-The `env -u TYPST_PACKAGE_PATH` shield guards against a broken global
-`TYPST_PACKAGE_PATH` some shells carry (see [Environment](#environment) —
-without it, `@local/…` imports can fail with `package not found`). Harmless
-when your shell is clean; drop it once you've confirmed compiles work bare.
 
 ### Fonts
 
@@ -67,24 +62,11 @@ just fonts-check   # confirms the three families are visible somewhere
 
 ## Environment
 
-Every `just` recipe runs Typst through `env -u TYPST_PACKAGE_PATH` — a
-shield against a mis-escaped global `TYPST_PACKAGE_PATH` some shells carry,
-which otherwise makes `@local/…` imports fail with `package not found`.
-That shield only applies inside `just` recipes. `.envrc` carries the same
-fix (`unset TYPST_PACKAGE_PATH`) plus `TYPST_ROOT` and `bin/` on `PATH` (for
-`table-to-typst`), but only takes effect in a shell where `direnv allow` has
-run. If you invoke `typst` directly outside `just`, in a shell that hasn't
-allowed direnv (CI, a fresh clone), either unset the variable yourself or
-run through direnv explicitly:
-
-```
-direnv exec . typst compile --root . --font-path fonts examples/book/main.typ out/book.pdf
-```
-
-`.envrc` also loads a `.envrc.local` if one is present. That file is
-untracked and never committed — it's where a local `PROTO_BOOK_DIR` can
-point at a private manuscript for the parity fixture (`just proto-check`);
-nothing under `tests/fixtures/proto/` is ever committed either.
+`.envrc` (direnv) puts `bin/` on `PATH` (for `table-to-typst`) and loads an
+untracked `.envrc.local` if present — that's where a local `PROTO_BOOK_DIR`
+can point at a private manuscript for the parity fixture (`just proto-check`);
+nothing under `tests/fixtures/proto/` is ever committed either. Nothing else
+in the build depends on direnv.
 
 ## Quickstart
 

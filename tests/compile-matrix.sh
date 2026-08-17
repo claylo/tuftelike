@@ -7,21 +7,21 @@ fail=0
 for target in book letter handout; do
   for media in screen print; do
     echo "== $target/$media"
-    env -u TYPST_PACKAGE_PATH typst compile --root . --font-path fonts --input media="$media" \
+    typst compile --root . --font-path fonts --input media="$media" \
       "examples/$target/main.typ" "out/matrix-$target-$media.pdf" || fail=1
   done
 done
 
 echo "== book/print themed (--input theme=trade)"
-env -u TYPST_PACKAGE_PATH typst compile --root . --font-path fonts --input media=print --input theme=trade \
+typst compile --root . --font-path fonts --input media=print --input theme=trade \
   "examples/book/main.typ" "out/matrix-book-print-trade.pdf" || fail=1
 
 echo "== cover"
-env -u TYPST_PACKAGE_PATH typst compile --root . --font-path fonts \
+typst compile --root . --font-path fonts \
   examples/cover/main.typ out/matrix-cover.pdf || fail=1
 
 echo "== template"
-env -u TYPST_PACKAGE_PATH typst compile --root . --font-path fonts --input media=screen \
+typst compile --root . --font-path fonts --input media=screen \
   template/main.typ out/matrix-template.pdf || fail=1
 
 exit "$fail"

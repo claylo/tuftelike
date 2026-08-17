@@ -1,6 +1,4 @@
-# env -u shields against the mis-escaped global TYPST_PACKAGE_PATH (see .envrc);
-# harmless no-op once that's fixed in the shell profile
-typst := "env -u TYPST_PACKAGE_PATH typst"
+typst := "typst"
 pkgdir := env_var('HOME') / "Library/Application Support/typst/packages/local/tuftelike"
 
 # symlink this repo as @local/tuftelike:0.1.0
