@@ -1,6 +1,6 @@
 #import "@preview/tiaoma:0.3.0"
 #import "geometry.typ": resolve-paper
-#import "themes.typ": resolve-theme
+#import "themes.typ": resolve-theme, role, role-args, styled
 #import "labels.typ": resolve-labels
 
 // mm of spine per page. lulu-standard-bw back-derived from the prototype
@@ -24,17 +24,17 @@
   align(center + horizon, box(width: cs.width, height: cs.height, img)))
 
 #let barcode-zone(theme, labels, barcode) = {
-  let zone(body) = rect(width: 50.8mm, height: 30.5mm, fill: white, inset: 3mm,
+  let zone(body) = rect(width: 50.8mm, height: 30.5mm, fill: white, inset: 3mm,   // lint-ok: printer barcode-zone spec, not typography
     align(center + horizon, body))
   if barcode == none { none }
   else if type(barcode) == dictionary and barcode.at("review-copy", default: false) {
     // fill: black — cover() sets white text page-wide for the jacket
     // panels; the white zone needs ink or the stamp is invisible
-    zone(text(font: theme.sans, size: 9pt, weight: "semibold", fill: black, labels.review-copy))
+    zone(styled(theme, "cover.stamp", labels.review-copy))
   } else if type(barcode) == dictionary and "isbn" in barcode {
     let digits = barcode.isbn.replace("-", "")
     zone[
-      #text(font: theme.mono, size: 7pt, fill: black, "ISBN " + barcode.isbn)
+      #styled(theme, "cover.isbn", "ISBN " + barcode.isbn)
       #v(1mm)
       #tiaoma.ean(digits, options: (height: 18.0))
     ]
@@ -54,7 +54,7 @@
   let cs = cover-size(paper, page-count, stock)
   set page(width: cs.width, height: cs.height, margin: 0mm,
     background: if background != none { image-fill(background, cs) } else { none })
-  set text(fill: white, font: theme.sans)
+  set text(..role-args(theme, "cover.base"))
   grid(columns: (paper.trim.w + paper.bleed, sw, paper.trim.w + paper.bleed), rows: 100%,
     // BACK (left panel)
     block(width: 100%, height: 100%, inset: (x: paper.bleed + paper.safety + 6mm, y: paper.bleed + paper.safety + 6mm))[
@@ -81,17 +81,17 @@
       //    container from the actual (rotated) footprint, which both
       //    directions need regardless of which way they rotate.
       align(center, rotate(-90deg, reflow: true, box(width: cs.height)[
-        #align(horizon, text(size: 11pt, tracking: 0.14em,
+        #align(horizon, styled(theme, "cover.spine",
           [#spine.at("author", default: none) #h(1fr) #upper(spine.at("title", default: ""))]))
       ]))
     },
     // FRONT (right panel)
     block(width: 100%, height: 100%, inset: paper.bleed + paper.safety + 6mm)[
-      #upper(text(size: 14pt, tracking: 0.2em, front.at("author", default: "")))
+      #styled(theme, "cover.author", front.at("author", default: ""))
       #v(1fr)
-      #upper(text(size: 26pt, tracking: 0.12em, front.at("title", default: "")))
-      #if "subtitle" in front [ #v(0.5em) #text(size: 14pt, style: "italic", font: theme.serif, front.subtitle) ]
+      #styled(theme, "cover.title", front.at("title", default: ""))
+      #if "subtitle" in front [ #v(role(theme, "cover").subtitle-gap) #styled(theme, "cover.subtitle", front.subtitle) ]
       #v(1fr)
-      #if "release" in front [ #upper(text(size: 10pt, tracking: 0.16em, front.release)) ]
+      #if "release" in front [ #styled(theme, "cover.release", front.release) ]
     ])
 }

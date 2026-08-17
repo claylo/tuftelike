@@ -44,4 +44,4 @@ This heading should read "Appendix A", not "Chapter A" — the level-1 rule
 detects a leading uppercase letter in the displayed number and swaps the
 label word.
 
-#part-divider(theme, labels, 2, "The Second Part")
+#part-divider(2, "The Second Part", theme: theme, labels: labels)

@@ -1,9 +1,14 @@
 #import "utils.typ": plain-text, lead-split
+#import "themes.typ": role, role-args, styled, current-theme
 
-#let newthought(theme, body) = {
-  v(1em, weak: true)
-  text(font: theme.serif, tracking: 0.05em, smallcaps(plain-text(body)))
-}
+// theme: auto reads the class's stored theme (inside context); pass a
+// theme to override. Shared by every content-level helper.
+#let with-theme(theme, f) = if theme == auto { context f(current-theme()) } else { f(theme) }
+
+#let newthought(body, theme: auto) = with-theme(theme, th => {
+  v(role(th, "newthought").above, weak: true)
+  styled(th, "newthought", plain-text(body))
+})
 
 #let lead-smallcaps(body) = {
   let (head, tail) = lead-split(plain-text(body))
@@ -11,51 +16,68 @@
 }
 
 // Tufte blockquote: indented, no bar, roomy. Attributed variant for epigraphs.
-#let tufte-quote(theme, body, attribution: none) = block(inset: (left: 1.5em, right: 1em))[
-  #body
-  #if attribution != none [ #v(0.3em) #align(right, text(style: "italic", [— #attribution])) ]
-]
+#let tufte-quote(body, attribution: none, theme: auto) = with-theme(theme, th => {
+  let q = role(th, "quote")
+  block(inset: (left: q.inset-left, right: q.inset-right))[
+    #body
+    #if attribution != none [ #v(q.attrib-gap) #align(right, styled(th, "epigraph-attrib", [— #attribution])) ]
+  ]
+})
 
 // Applies document-wide text + heading + list + figure/table rules.
 // `note-ext` = how far captions/tables extend into the note column.
 // `media` drives the print-only parity behaviors (caption/table alignment
 // flips to the outer edge on versos; tables become unbreakable).
-// Paragraph, list, caption, and table metrics are the prototype book's
-// print-proven values, ported verbatim.
+// Every metric comes from the theme roles; the defaults are the prototype
+// book's print-proven values.
 #let base-style(theme, labels, note-ext, media: "screen", doc) = {
-  set text(font: theme.serif, size: theme.body-size, fill: theme.text-fill)
-  set par(justify: true, leading: theme.body-leading, spacing: theme.par-spacing)
-  set list(body-indent: 1em, spacing: 1.2em)
-  set enum(body-indent: 1em, spacing: 1.2em)
+  let body = role(theme, "body")
+  set text(..role-args(theme, "body"))
+  set par(justify: theme.justify, leading: body.leading, spacing: body.spacing)
+  set list(body-indent: theme.list.body-indent, spacing: theme.list.spacing)
+  set enum(body-indent: theme.list.body-indent, spacing: theme.list.spacing)
   show list: set par(justify: false)
-  show heading: set text(font: theme.serif, weight: "regular", style: "italic")
-  // level 1 needs an explicit size: the base show-heading override suppresses
+  show raw: set text(..role-args(theme, "raw"))
+  // level 1 needs an explicit size: a show-heading text override suppresses
   // Typst's built-in heading scaling (measured h1 at 9.92pt without this —
-  // smaller than h3). chapter.typ replaces level-1 rendering for books.
-  show heading.where(level: 1): set text(size: theme.h1-size)
-  show heading.where(level: 2): set text(size: theme.h2-size)
-  show heading.where(level: 3): set text(size: theme.h3-size)
-  show heading.where(level: 4): set text(size: theme.h4-size)
-  show heading.where(level: 5): set text(size: theme.h5-size)
+  // smaller than h3). chapter.typ replaces level-1 rendering for books and
+  // re-applies the role via styled().
+  show heading.where(level: 1): set text(..role-args(theme, "heading.h1"))
+  show heading.where(level: 2): set text(..role-args(theme, "heading.h2"))
+  show heading.where(level: 3): set text(..role-args(theme, "heading.h3"))
+  show heading.where(level: 4): set text(..role-args(theme, "heading.h4"))
+  show heading.where(level: 5): set text(..role-args(theme, "heading.h5"))
+  // above/below: only applied when the role sets them — auto leaves Typst's
+  // own heading spacing intact (a set block(above: auto) would REPLACE it
+  // with the generic block default; parity-checked)
+  show heading.where(level: 1): set block(above: theme.heading.h1.above) if theme.heading.h1.above != auto
+  show heading.where(level: 1): set block(below: theme.heading.h1.below) if theme.heading.h1.below != auto
+  show heading.where(level: 2): set block(above: theme.heading.h2.above) if theme.heading.h2.above != auto
+  show heading.where(level: 2): set block(below: theme.heading.h2.below) if theme.heading.h2.below != auto
+  show heading.where(level: 3): set block(above: theme.heading.h3.above) if theme.heading.h3.above != auto
+  show heading.where(level: 3): set block(below: theme.heading.h3.below) if theme.heading.h3.below != auto
+  show heading.where(level: 4): set block(above: theme.heading.h4.above) if theme.heading.h4.above != auto
+  show heading.where(level: 4): set block(below: theme.heading.h4.below) if theme.heading.h4.below != auto
+  show heading.where(level: 5): set block(above: theme.heading.h5.above) if theme.heading.h5.above != auto
+  show heading.where(level: 5): set block(below: theme.heading.h5.below) if theme.heading.h5.below != auto
   set heading(numbering: none) // mainmatter turns numbering on
 
-  // Captions: sans, "Supplement N." on its own sticky line, body below,
+  // Captions: "Supplement N." on its own sticky line, body below,
   // extending into the note column; on print versos the whole block sets
   // flush to the outer (left) edge.
   show figure.caption: it => context {
     let outer = if media == "print" and calc.even(here().page()) { right } else { left }
-    align(outer, block(width: 100% + note-ext, inset: 0mm, sticky: true,
+    align(outer, block(width: 100% + note-ext, inset: 0mm, sticky: true,   // lint-ok: zero inset is geometry
       align(left, {
-        block(below: 0.5em, sticky: true,
-          text(font: theme.sans, size: theme.note-size,
-            [#it.supplement #context it.counter.display(it.numbering).]))
-        text(font: theme.sans, size: theme.note-size, it.body)
+        block(below: role(theme, "caption").below, sticky: true,
+          styled(theme, "caption", [#it.supplement #context it.counter.display(it.numbering).]))
+        styled(theme, "caption", it.body)
       })))
   }
 
   // Tables: caption on top, minimal strokes (header rule pair only; authors
-  // close with table.hline), 10pt header / 9pt body cells, full width into
-  // the note column, unbreakable in print, verso-flush in print.
+  // close with table.hline), themed head/body cells, full width into the
+  // note column, unbreakable in print, verso-flush in print.
   show figure.where(kind: table): set figure.caption(position: top)
   show figure.where(kind: table): set figure(supplement: labels.table, numbering: "1")
   show figure.where(kind: table): set block(breakable: media != "print")
@@ -66,22 +88,21 @@
   show figure.where(kind: image): set figure(supplement: labels.figure, numbering: "1")
   show figure.where(kind: raw): set figure.caption(position: top)
   show figure.where(kind: raw): set figure(supplement: labels.code, numbering: "1")
-  show table.cell: set par(justify: false)   // shipped book's cells are ragged-right
+  show table.cell: set par(justify: false)   // prototype book's cells are ragged-right
   show table.cell: it => {
-    set text(size: 10pt, weight: "regular") if it.y == 0
-    set text(size: theme.note-size, weight: "regular") if it.y > 0
+    set text(..role-args(theme, "table-head")) if it.y == 0
+    set text(..role-args(theme, "table-body")) if it.y > 0
     set align(left)
     it
   }
-  set table(stroke: (_, y) => if y == 0 { (top: 1pt + theme.text-fill, bottom: 0.3pt + theme.text-fill) })
-  set table.hline(stroke: 0.7pt + theme.text-fill)
-  show table: t => block(width: 100% + note-ext, inset: 0mm, t)
+  let rule = theme.table-rule
+  set table(stroke: (_, y) => if y == 0 { (top: rule.top + body.fill, bottom: rule.bottom + body.fill) })
+  set table.hline(stroke: rule.hline + body.fill)
+  show table: t => block(width: 100% + note-ext, inset: 0mm, t)   // lint-ok: zero inset is geometry
 
-  show quote.where(block: true): it => tufte-quote(theme, it.body,
-    attribution: it.attribution)
+  show quote.where(block: true): it => tufte-quote(it.body, attribution: it.attribution, theme: theme)
   if theme.draft {
-    set page(foreground: rotate(-55deg,
-      text(size: 96pt, fill: luma(85), font: theme.sans, labels.draft)))
+    set page(foreground: rotate(-55deg, styled(theme, "watermark", labels.draft)))
     doc
   } else { doc }
 }

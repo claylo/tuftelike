@@ -8,3 +8,8 @@
   distribution: "Distribution",
 )
 #let resolve-labels(user) = default-labels + user
+// ambient accessor — see themes.typ current-theme()
+#let current-labels() = {
+  let s = state("tuftelike").get()
+  if s == none { default-labels } else { s.at("labels", default: default-labels) }
+}

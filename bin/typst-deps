@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# typst-deps — report/update @preview package pins in this repo.
+#   typst-deps outdated          list pins vs Typst Universe latest (exit 1 if any behind)
+#   typst-deps update [name…]    rewrite pins to latest (all, or named); run `just test` after
+#   typst-deps -h|--help
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+INDEX_URL="https://packages.typst.org/preview/index.json"
+SCAN_DIRS=(src template examples tests)
+
+usage() { sed -n '2,5p' "$0" | sed -E 's/^# ?//'; }
+[[ $# -ge 1 ]] || { usage >&2; exit 2; }
+cmd=$1; shift
+case "$cmd" in -h|--help|help) usage; exit 0 ;; esac
+command -v jq >/dev/null || { echo "typst-deps: jq required" >&2; exit 2; }
+command -v curl >/dev/null || { echo "typst-deps: curl required" >&2; exit 2; }
+
+# name<TAB>version<TAB>file:line — one row per pin site
+scan() {
+  grep -rnoE '@preview/[a-z0-9-]+:[0-9]+\.[0-9]+\.[0-9]+' "${SCAN_DIRS[@]}" \
+    | sed -E 's|^([^:]+:[0-9]+):@preview/([a-z0-9-]+):([0-9.]+)$|\2\t\3\t\1|' | sort
+}
+# highest version of a package in the Universe index
+latest_of() {
+  jq -r --arg n "$1" '.[] | select(.name==$n) | .version' <<<"$INDEX" \
+    | sort -t. -k1,1n -k2,2n -k3,3n | tail -1
+}
+
+INDEX=$(curl -fsSL "$INDEX_URL") || { echo "typst-deps: could not fetch $INDEX_URL" >&2; exit 2; }
+PINS=$(scan)
+
+case "$cmd" in
+  outdated)
+    behind=0
+    printf '%-14s %-9s %-9s %s\n' NAME PINNED LATEST SITES
+    while IFS=$'\t' read -r name ver; do
+      sites=$(awk -F'\t' -v n="$name" -v v="$ver" '$1==n && $2==v' <<<"$PINS" | wc -l | tr -d ' ')
+      latest=$(latest_of "$name"); [[ -n "$latest" ]] || latest="?"
+      flag=""
+      if [[ "$latest" != "?" && "$latest" != "$ver" ]]; then flag="  <-- behind"; behind=1; fi
+      printf '%-14s %-9s %-9s %s%s\n' "$name" "$ver" "$latest" "$sites" "$flag"
+    done < <(cut -f1,2 <<<"$PINS" | sort -u)
+    exit "$behind" ;;
+  update)
+    want=("$@")
+    changed=0
+    while IFS=$'\t' read -r name ver; do
+      if [[ ${#want[@]} -gt 0 ]]; then
+        printf '%s\n' "${want[@]}" | grep -qx "$name" || continue
+      fi
+      latest=$(latest_of "$name")
+      [[ -n "$latest" && "$latest" != "$ver" ]] || continue
+      echo "$name: $ver -> $latest"
+      awk -F'\t' -v n="$name" -v v="$ver" '$1==n && $2==v {print $3}' <<<"$PINS" | cut -d: -f1 | sort -u \
+        | while read -r f; do
+            sed -i '' -E "s|@preview/$name:$ver|@preview/$name:$latest|g" "$f"
+            echo "  $f"
+          done
+      changed=1
+      if [[ "$name" == "in-dexter" ]]; then
+        echo "  NOTE: in-dexter is ALSO pinned in colophon's config (render.in_dexter_version) — bump it there too." >&2
+      fi
+    done < <(cut -f1,2 <<<"$PINS" | sort -u)
+    if [[ $changed -eq 0 ]]; then echo "all pins already at latest"; else echo "done — run: just test"; fi ;;
+  *) usage >&2; exit 2 ;;
+esac

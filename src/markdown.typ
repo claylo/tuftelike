@@ -13,7 +13,7 @@
   src,                        // markdown string (pass reader("file.md") to read a file)
   reader: none,
   content-root: "",           // prefix applied to relative image/src paths
-  theme: (:),
+  theme: auto,                // auto = the class's stored theme (current-theme())
   extensions: (:),            // extra html tag handlers, merged over defaults
   label-prefix: "",
 ) = {
@@ -44,7 +44,7 @@
     html: html-handlers,
     heading-labels: "github",
     label-prefix: label-prefix,
-    blockquote: body => tufte-quote(theme, body),
+    blockquote: body => tufte-quote(body, theme: theme),
     scope: (
       // forwards width/height/fit etc. so raw-typst image calls can size
       image: (path, alt: none, ..args) => image(bytes(reader(path-of(path), encoding: none)), alt: alt, ..args.named()),

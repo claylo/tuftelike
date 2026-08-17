@@ -70,5 +70,5 @@ Appendix body.
 #heading(level: 1)[Further Reading]
 Second appendix body.
 
-#about-author(theme)[A biography paragraph for the gap check.]
-#colophon(theme)[Set with the toc fixture.]
+#about-author(theme: theme)[A biography paragraph for the gap check.]
+#colophon(theme: theme)[Set with the toc fixture.]

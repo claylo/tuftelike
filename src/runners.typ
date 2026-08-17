@@ -1,4 +1,5 @@
 #import "utils.typ": plain-text
+#import "themes.typ": styled
 
 // Running heads: verso "N   CHAPTER", recto "SECTION   N", set flush with
 // the page's OUTER edge (the folio extends into the note column via
@@ -27,8 +28,7 @@
   if media == "print" and h1-pages.contains(pg + 1) { return }
   let shorten(t) = alt-runners.at(t, default: t)
   let numtxt = counter(page).display("1")
-  let style(body) = text(font: theme.serif, size: theme.folio-size,
-    tracking: 0.12em, style: "normal", weight: "regular", body)
+  let style(body) = styled(theme, "folio", body)
   let before(lvl) = {
     let hs = query(heading.where(level: lvl).before(here()))
     if hs.len() == 0 { none } else { upper(shorten(plain-text(hs.last().body))) }

@@ -28,6 +28,11 @@ matrix:
 just test
 ```
 
+Package pins (`marginalia`, `cmarker`, `tiaoma`, `in-dexter`) are plain
+`@preview/name:version` import strings; `just outdated` compares them with
+Typst Universe and `just update [name…]` rewrites every pin site to latest
+and re-runs the tests (`bin/typst-deps` does the work; needs `curl` + `jq`).
+
 Start a new project from the bundled template:
 
 ```
@@ -260,17 +265,44 @@ or stock.
 ## Theme & labels
 
 Every class takes `theme:` and `labels:` dicts that merge over
-`default-theme` / `default-labels` (explicit arg > dict > default, right
-side wins on key collisions):
+`default-theme` / `default-labels`. The theme is **fonts + roles**: three
+named font stacks, and one role per text site in the package (body, note,
+folio, headings, chapter label, TOC rows, title page, cover, …). Every role
+carries the same six keys — `font`, `size`, `weight`, `style`, `tracking`,
+`fill` — plus spacing keys where the role owns vertical rhythm (`above`,
+`below`, named gaps). `auto` on any key means "inherit".
 
 ```typ
-#show: handout.with(
+#show: book.with(
   // …
-  distribution: "Design Review, Production",
-  labels: (distribution: "Circulation"),   // renames the "Distribution:" prefix
-  theme: (body-size: 10pt, serif: ("Georgia",)),
+  labels: (chapter: "Kapitel"),
+  theme: (
+    fonts: (serif: ("Times New Roman", "Times"), sans: ("Helvetica Neue", "Helvetica")),
+    body: (size: 10pt),
+    heading: (h2: (font: "sans", weight: "bold", style: "normal", above: 1.2em, below: 0.4em)),
+    justify: false,   // the default — no class justifies unless you say so
+  ),
 )
 ```
+
+Rules of the road:
+
+- **Font aliases.** A role's `font` is `"serif"`, `"sans"`, or `"mono"`
+  (resolved against `theme.fonts`) or an explicit stack. Swapping the serif
+  is one line; any single role can still diverge.
+- **Deep merge.** Dicts merge at every level, so `theme: (heading: (h2:
+  (weight: "bold")))` touches exactly one key. Arrays — font stacks — replace
+  wholesale: `fonts: (serif: ("Georgia",))` drops the whole fallback chain.
+  Pass the full stack you want.
+- **`default-theme` is the complete list of knobs.** Read
+  `src/themes.typ` — every size, tracking, weight, colour, and gap the
+  package renders is there and nowhere else (`tests/lint-hardcoded.sh`
+  enforces it). Its values ARE the print-proven Tufte look.
+- **Helpers read the theme for you.** `sidenote`, `marginnote`,
+  `newthought`, `tufte-quote`, `md`, `part-divider`, `about-author`,
+  `colophon`, `book-index`, `instructional-extensions` all pick up the
+  class's theme and labels automatically. Pass `theme:` / `labels:` only to
+  override.
 
 ### Theme variants: flip at compile time
 
@@ -281,8 +313,8 @@ print a book more than one way without edits:
 ```typ
 #show: book.with(
   // …
-  theme: (serif: my-fonts),                // unconditional — applies to every variant
-  presets: ("trade": (body-size: 10pt, toc-pagenums: "flush")),
+  theme: (fonts: (serif: my-fonts)),        // unconditional — applies to every variant
+  presets: ("trade": (body: (size: 10pt), toc-pagenums: "flush")),
 )
 ```
 
@@ -311,10 +343,6 @@ ln -s ~/writing/my-themes.typ themes.typ
 
 Being a normal module, the library file can hold helper functions, shared
 font stacks, and its own imports.
-
-> **Arrays replace wholesale, not merge.** `theme: (serif: ("Georgia",))`
-> drops the entire fallback chain — you get Georgia only, no Palatino, no
-> ETbb. Pass the full stack you want whenever you override a font array.
 
 The book contents page follows the print-proven layout: part and appendix
 group headers at the outline margin, chapter numbers right-aligned in their
@@ -353,7 +381,7 @@ workshop- or course-style books:
 #import "@local/tuftelike:0.1.0": instructional-extensions, instructional-icons
 
 #chapters(paths, reader: reader,
-  extensions: instructional-extensions(default-theme))
+  extensions: instructional-extensions())
 ```
 
 ```markdown

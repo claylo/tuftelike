@@ -34,7 +34,7 @@ push off of.
 #appendices(("md/appx.md",), reader: reader, media: media, theme: theme)
 
 #chapter-break(media, "odd")
-#about-author(theme)[
+#about-author(theme: theme)[
   A short biographical note, exercising `about-author` — this page carries
   `<no-folio>`, so it should show no folio despite being well past the
   main-matter boundary.
@@ -44,7 +44,7 @@ A closing paragraph that cites a demo source#sidecite(<demo1>, theme: theme)
 to verify that `references(bib, hidden: true)` resolves the citation into a
 margin note without printing a References section.
 
-#colophon(theme)[
+#colophon(theme: theme)[
   Set in tuftelike. This page also carries `<no-folio>`.
 ]
 

@@ -59,4 +59,4 @@ Body text on the recto page, continuing under "A Body Section".
 #pagebreak()
 
 // Page 6: part divider. Carries <divider-page>, so folio is skipped.
-#part-divider(theme, labels, 2, "The Second Part")
+#part-divider(2, "The Second Part", theme: theme, labels: labels)

@@ -9,6 +9,6 @@
 
 #let book-presets = (
   // 10pt body is the 6x9-friendly measure; flush folios de-Tufte the TOC
-  trade: (body-size: 10pt, note-size: 8.5pt, toc-pagenums: "flush",
-    serif: trade-serif),
+  trade: (body: (size: 10pt), note: (size: 8.5pt), toc-pagenums: "flush",
+    fonts: (serif: trade-serif)),
 )

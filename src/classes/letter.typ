@@ -1,6 +1,6 @@
 #import "@preview/marginalia:0.3.1" as marginalia
 #import "../geometry.typ": resolve-media, resolve-paper
-#import "../themes.typ": resolve-theme
+#import "../themes.typ": resolve-theme, role, role-args, styled
 #import "../labels.typ": resolve-labels
 #import "../typography.typ": base-style
 #import "../notes.typ": footnote-transform
@@ -21,6 +21,7 @@
   let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
   let labels = resolve-labels(labels)
   let m = paper.letter-margin
+  let L = role(theme, "letter")
   // note column occupies the wide right margin; letters are one-sided
   show: marginalia.setup.with(
     inner: (far: m.left, width: 0mm, sep: 0mm),
@@ -29,7 +30,7 @@
   set page(width: paper.trim.w, height: paper.trim.h,
     fill: if media == "screen" { theme.screen-bg } else { none },
     header: context if counter(page).get().first() > 1 {
-      text(font: theme.serif, size: theme.folio-size, tracking: 0.12em,
+      styled(theme, "letter.runner",
         [#smallcaps(if re != none { re } else { "" }) #h(1fr) #counter(page).display("1")])
     })
   show: base-style.with(theme, labels, paper.note-col + paper.note-gap, media: media)
@@ -49,7 +50,7 @@
 
   // letterhead
   if type(from) == dictionary {
-    text(font: theme.sans, size: 9pt)[
+    text(..role-args(theme, "letter.letterhead"))[
       #smallcaps(from.at("name", default: "")) \
       #from.at("title", default: none) #if "title" in from [\ ]
       #from.at("org", default: none) #if "org" in from [\ ]
@@ -57,18 +58,18 @@
       #from.at("email", default: none)
     ]
   } else { from }
-  v(2em)
+  v(L.after-letterhead)
   if date == auto { datetime.today().display("[month repr:long] [day], [year]") } else { date }
-  v(1.5em)
-  if to != none { to; v(1.5em) }
-  if re != none { text(weight: "semibold", [Re: #re]); v(1em) }
-  if salutation != none { salutation; v(0.8em) }
+  v(L.after-date)
+  if to != none { to; v(L.after-to) }
+  if re != none { styled(theme, "letter.re", [Re: #re]); v(L.after-re) }
+  if salutation != none { salutation; v(L.after-salutation) }
 
   doc
 
-  v(2em)
+  v(L.before-closing)
   closing
-  if signature != none { v(0.4em); signature }
-  if enclosures.len() > 0 { v(1.5em); text(size: 9pt, [#labels.enclosures: #enclosures.join(", ")]) }
-  if cc.len() > 0 { v(0.3em); text(size: 9pt, [#labels.cc: #cc.join(", ")]) }
+  if signature != none { v(L.before-signature); signature }
+  if enclosures.len() > 0 { v(L.before-enclosures); styled(theme, "letter.meta", [#labels.enclosures: #enclosures.join(", ")]) }
+  if cc.len() > 0 { v(L.before-cc); styled(theme, "letter.meta", [#labels.cc: #cc.join(", ")]) }
 }

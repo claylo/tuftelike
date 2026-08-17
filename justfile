@@ -11,6 +11,7 @@ install:
 # compile-time assertion tests + compile matrix
 test: install
     mkdir -p out
+    tests/lint-hardcoded.sh
     for f in tests/assert/*.typ; do echo "== $f"; {{typst}} compile --root . --font-path fonts "$f" "out/assert-$(basename "$f" .typ).pdf" || exit 1; done
     if [ -x tests/compile-matrix.sh ]; then tests/compile-matrix.sh; fi
 
@@ -36,3 +37,12 @@ proto-check: install
 # confirm the print-proven fonts are on the font path
 fonts-check:
     {{typst}} fonts --font-path fonts | grep -iE 'ETbb|Gill Sans|Consolas' || echo "expected fonts missing — see README fonts section"
+
+# list @preview package pins vs Typst Universe (exit 1 if any are behind)
+outdated:
+    bin/typst-deps outdated
+
+# bump @preview pins to latest (optionally only the named packages), then test
+update *pkgs:
+    bin/typst-deps update {{pkgs}}
+    just test

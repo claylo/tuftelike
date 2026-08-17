@@ -1,5 +1,6 @@
 #import "typography.typ": tufte-quote
 #import "utils.typ": plain-text
+#import "themes.typ": role, role-args, styled
 
 #let isbn-lines(isbn) = {
   if isbn == none { () }
@@ -15,23 +16,25 @@
 
 #let title-page(theme, title: none, subtitle: none, authors: (), release: none,
                 publisher: none) = align(left)[
-  #for a in authors [#upper(text(font: theme.sans, tracking: 0.2em, size: 16pt, a)) \ ]
-  #v(8em)
-  #upper(text(font: theme.sans, tracking: 0.16em, size: 20pt, title))
-  #if subtitle != none [ \ #text(font: theme.serif, style: "italic", size: 15pt, subtitle) ]
-  #if release != none [ #v(2em) #upper(text(font: theme.sans, tracking: 0.16em, size: 12pt, release)) ]
-  #if publisher != none [ #align(bottom + left, upper(text(font: theme.sans, tracking: 0.16em, size: 14pt, publisher.at("name", default: publisher)))) ]
+  #let tp = role(theme, "title-page")
+  #for a in authors [#styled(theme, "title-page.author", a) \ ]
+  #v(tp.gap-author-title)
+  #styled(theme, "title-page.title", title)
+  #if subtitle != none [ \ #styled(theme, "title-page.subtitle", subtitle) ]
+  #if release != none [ #v(tp.gap-release) #styled(theme, "title-page.release", release) ]
+  #if publisher != none [ #align(bottom + left, styled(theme, "title-page.publisher", publisher.at("name", default: publisher))) ]
 ]
 
 #let copyright-page(theme, copyright: (:), publisher: none) = align(bottom + left)[
-  #set text(size: 9pt)
+  #let cr = role(theme, "copyright")
+  #set text(..role-args(theme, "copyright"))
   #if "holders" in copyright [Copyright © #copyright.at("year", default: "") #copyright.holders \ ]
   #for line in isbn-lines(copyright.at("isbn", default: none)) [#line \ ]
   #if "release-line" in copyright [#copyright.release-line \ ]
-  #if "disclaimer" in copyright [#v(0.5em) #copyright.disclaimer \ ]
-  #if "extra" in copyright [#v(0.5em) #copyright.extra \ ]
+  #if "disclaimer" in copyright [#v(cr.gap) #copyright.disclaimer \ ]
+  #if "extra" in copyright [#v(cr.gap) #copyright.extra \ ]
   #if publisher != none [
-    #v(1em)
+    #v(cr.publisher-gap)
     #smallcaps(publisher.at("name", default: "")) \
     #publisher.at("address", default: "") \
     #publisher.at("website_url", default: "")
@@ -49,11 +52,12 @@
 // unaffected by newlines. Verified with an isolated repro before landing
 // this fix — see Task 8 report for the reproduction.
 #let dedication-page(theme, dedication) = align(center + horizon)[
-  #set text(style: "italic")
+  #let dd = role(theme, "dedication")
+  #set text(..role-args(theme, "dedication"))
   #{
     if type(dedication) == str { dedication }
-    else if type(dedication) == array { dedication.join(v(1.5em)) }
-    else { dedication.pairs().map(((who, what)) => [#what #v(0.2em) #text(style: "normal", smallcaps(who))]).join(v(2em)) }
+    else if type(dedication) == array { dedication.join(v(dd.gap)) }
+    else { dedication.pairs().map(((who, what)) => [#what #v(dd.attrib-gap) #text(style: "normal", smallcaps(who))]).join(v(dd.group-gap)) }
   }
 ]
 
@@ -61,7 +65,7 @@
 // Same markup-mode if/else-chain hazard as dedication-page above — wrapped
 // in #{ } for the same reason.
 #let epigraph-page(theme, epigraphs) = align(left + horizon)[
-  #let one(q, a) = [#tufte-quote(theme, q, attribution: a) #v(2em)]
+  #let one(q, a) = [#tufte-quote(q, attribution: a, theme: theme) #v(theme.epigraph-gap)]
   #{
     if type(epigraphs) == str { one(epigraphs, none) }
     else if type(epigraphs) == array and epigraphs.len() == 2 and type(epigraphs.first()) == str {
@@ -97,20 +101,21 @@
   // under justification, and the line breaker can never strand the folio
   // alone on a wrapped line — an overlong title breaks among its own
   // words instead
-  let folio-gap = if pagenums == "ragged" { "\u{a0}" * 8 } else { h(1fr) }
+  let tc = role(theme, "toc")
+  let folio-gap = if pagenums == "ragged" { "\u{a0}" * tc.folio-gap } else { h(1fr) }
   // sticky: a group header never widows at a page bottom — it always
   // travels with the entry that triggered it
-  let group-header(title) = block(above: 1.3em, sticky: true,
-    text(font: theme.serif, tracking: 0.16em, weight: "semibold", upper(title)))
+  let group-header(title) = block(above: tc.group.above, sticky: true,
+    styled(theme, "toc.group", title))
 
   // sticky: a chapter row never strands from its first section row —
   // the page break moves before the chapter instead
-  show outline.entry.where(level: 1): set block(above: 1.1em, sticky: true)
+  show outline.entry.where(level: 1): set block(above: tc.l1.above, sticky: true)
   show outline.entry: it => context {
     let el = it.element
     // custom rendering forfeits the default show's link — re-add it
     let row(prefix, inner) = link(el.location(),
-      pad(left: 2em, it.indented(prefix, inner, gap: 1.5em)))
+      pad(left: tc.indent, it.indented(prefix, inner, gap: tc.entry-gap)))
     if it.prefix() == none {
       // unnumbered sections keep their sub-heads out of the contents
       if it.level == 1 {
@@ -121,9 +126,9 @@
         if prior.len() > 0 and prior.last().numbering != none {
           // first unnumbered entry after the numbered body — open the
           // backmatter group with an empty spacer block
-          block(above: 1.2em, text(none))
+          block(above: tc.backmatter-gap, text(none))
         }
-        row(" ", text(font: theme.serif, style: "italic", it.body()) + folio-gap + it.page())
+        row(" ", styled(theme, "toc.unnumbered", it.body()) + folio-gap + it.page())
       }
     } else {
       let prefix = plain-text(it.prefix()).trim(".")
@@ -143,23 +148,24 @@
         }
         // poor-man's right alignment: two spaces ≈ one digit width
         let padded = if prefix.len() == 1 { "  " + prefix } else { prefix }
-        let size = if it.level == 1 { theme.body-size } else { theme.body-size - 1pt }
-        let body-style = if it.level == 1 { "italic" } else { "normal" }
+        let lvl = if it.level == 1 { "toc.l1" } else { "toc.l2" }
+        // prefix column matches the entry's size (only when the level sets one)
+        let la = role-args(theme, lvl)
+        let sz = if "size" in la { (size: la.size) } else { (:) }
         row(
-          text(font: theme.serif, style: "normal", size: size, padded),
-          text(font: theme.serif, style: body-style, size: size, it.body())
-            + folio-gap + it.page())
+          text(..role-args(theme, "toc.prefix"), ..sz, padded),
+          styled(theme, lvl, it.body()) + folio-gap + it.page())
       }
     }
   }
   // Title rendered directly, not via outline(title:) — the class-level
   // chapter-opener rule would style the outline's title heading as an
-  // opener and add its 2.5em drop. v(2.1em) is calibrated, not derived:
+  // opener and add its opener drop. toc.title-gap is calibrated, not derived:
   // it closes the measured title→first-entry distance page-against-page
   // with the prototype's first-print PDF (47.5pt at 11pt body; the
   // prototype routed its title through a generic h1 rule whose heading
   // block spacing tuftelike's flow doesn't otherwise reproduce).
-  text(size: theme.h1-size, style: "italic", labels.contents)
-  v(2.1em)
+  styled(theme, "toc.title", labels.contents)
+  v(tc.title-gap)
   outline(title: none, depth: 2)
 }

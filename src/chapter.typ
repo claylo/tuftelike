@@ -2,29 +2,29 @@
 // icons: dict mapping keyword -> image content, e.g. ("Quick Try": image(...)).
 // A level-3 heading whose text starts with (or contains) a key gets its icon.
 //
-// DEVIATION from plan: `import "utils.typ": plain-text` moved here to file
-// scope. Typst imports are file-scoped, not block-scoped — the plan's draft
-// had the import statement INSIDE the level-3 show-rule closure, which
-// would re-run the import on every heading match (harmless but wasteful)
-// and reads as if it were closure-local, which Typst imports never are.
+// Typst imports are file-scoped, not block-scoped — keep them here, never
+// inside a show-rule closure.
 #import "utils.typ": plain-text
+#import "themes.typ": role, role-args, styled, current-theme
+#import "labels.typ": current-labels
 
 #let chapter-heading-rules(theme, labels, note-ext, icons: (:), doc) = {
   show heading.where(level: 1): it => block(width: 100% + note-ext)[
     #if it.numbering != none {
       let num = counter(heading).display(it.numbering)
       let word = if num.match(regex("^[A-Z]")) != none { labels.appendix } else { labels.chapter }
-      text(font: theme.sans, size: 10pt, style: "normal",
-        [#smallcaps(word) #num.trim(".")])
+      // the label word takes the role's case (smallcaps); the number keeps
+      // the same font/size but is never cased
+      styled(theme, "chapter-label", word)
+      text(..role-args(theme, "chapter-label"), [ ] + num.trim("."))
       linebreak()
     }
-    #text(size: theme.h1-size, style: "italic", it.body)
-    #v(2.5em)
+    #styled(theme, "heading.h1", it.body)
+    #v(role(theme, "opener").drop)
   ]
   show heading.where(level: 2): it => block(width: 100% + note-ext)[
     #if it.numbering != none {
-      text(font: theme.sans, size: 8pt, fill: luma(120),
-        counter(heading).display(it.numbering))
+      styled(theme, "section-number", counter(heading).display(it.numbering))
       linebreak()
     }
     #it.body
@@ -34,19 +34,27 @@
     // skip empty keys: "".starts-with matches every heading
     let hit = icons.pairs().find(((k, _)) => k != "" and (t.starts-with(k) or t.contains(k)))
     if hit != none {
-      grid(columns: (1.5em, auto), gutter: 0.5em,
-        box(height: 1em, hit.last()), it.body)
+      let ic = role(theme, "heading.h3-icon")
+      grid(columns: (ic.width, auto), gutter: ic.gutter,
+        box(height: 1em, hit.last()), it.body)   // lint-ok: icon box is 1 text-line tall by definition
     } else { it.body }
   }
   doc
 }
 
-#let part-divider(theme, labels, number, title) = page(header: none, footer: none)[
+// theme/labels: auto reads the class's stored values (current-theme /
+// current-labels) — pass explicitly only to override.
+#let part-divider(number, title, theme: auto, labels: auto) = page(header: none, footer: none)[
   #metadata(none) <divider-page>
-  #align(center)[
-    #v(6.4em)
-    #text(size: 16pt, font: theme.serif, [#labels.part #number])
-    #v(0.3em)
-    #text(size: 24pt, font: theme.serif, title)
-  ]
+  #context {
+    let th = if theme == auto { current-theme() } else { theme }
+    let lb = if labels == auto { current-labels() } else { labels }
+    let pd = role(th, "part-divider")
+    align(center)[
+      #v(pd.top)
+      #styled(th, "part-label", [#lb.part #number])
+      #v(pd.gap)
+      #styled(th, "part-title", title)
+    ]
+  }
 ]
