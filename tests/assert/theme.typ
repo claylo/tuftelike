@@ -58,3 +58,9 @@
 #assert(resolve-theme((:), presets: variants).body.size == 11pt) // no selection -> defaults
 #assert(resolve-theme((:), preset: "beautiful-evidence").body.size == 11pt) // built-in identity overlay
 #assert("beautiful-evidence" in theme-presets)
+// tier presets + per-paper aliases
+#assert(theme-presets.tier2.body.size == 10pt and theme-presets.tier2.note.size == 8.5pt)
+#assert(theme-presets.at("kdp-6x9") == theme-presets.tier2)
+#assert(theme-presets.tier3.body.size == 10pt)
+#assert(theme-presets.at("lulu-a5") == theme-presets.tier3)
+#assert("kdp-7.5x9.25" not in theme-presets)   // tier 1 needs no type preset

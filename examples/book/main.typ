@@ -23,19 +23,25 @@
   // compile time without editing this one: `just demo book print trade`
   // (or --input theme=trade); omit for the Tufte defaults
   presets: book-presets,
+  // build targets — one source, several outputs: `just demo book kdp`,
+  // `--input target=coil`; built-ins screen (default) and print
+  targets: (
+    kdp: (media: "print", paper: "kdp-7.5x9.25"),
+    coil: (media: "print", paper: "lulu-us-letter", binding: "coil"),
+  ),
   // bundled keyword→icon map; root-absolute path because the image() call
   // inside instructional-icons resolves against the package, not this file
   icons: instructional-icons(assets: "/examples/_assets"),
 )
 
-#show: begin-chapters.with(resolve-media())
+#show: begin-chapters
 #part-divider("I", "Threads")
 #chapters(
   ("content/part1-opening.md", "content/finding-the-thread.md", "content/margins-of-error.md"),
-  reader: reader, media: resolve-media(), content-root: "content",
+  reader: reader, content-root: "content",
   extensions: instructional-extensions())
 #appendices(("content/appendix-tooling.md",), reader: reader,
-  media: resolve-media(), content-root: "content")
+  content-root: "content")
 
 #about-author[
   A. Demo Author has been writing in the margins of other people's books
@@ -48,5 +54,5 @@
 
 // Back-of-book index over the #index markers scattered through the
 // chapters (colophon inserts these automatically in a real workflow).
-#pagebreak(to: if resolve-media() == "print" { "odd" } else { none }, weak: true)
+#chapter-break("odd")
 #book-index()

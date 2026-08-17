@@ -25,15 +25,15 @@ push off of.
 // NOTE: called via #show:, NOT bare `#begin-chapters(media)` — see the
 // DEVIATION comment in src/mainmatter.typ. This is the verified-working
 // invocation.
-#show: begin-chapters.with(media)
-#chapter-break(media, "odd")
+#show: begin-chapters.with(media: media)
+#chapter-break("odd", media: media)
 
-#chapters(("md/ch1.md", "md/ch2.md"), reader: reader, media: media, split: "odd", theme: theme)
+#chapters(("md/ch1.md", "md/ch2.md"), reader: reader, split: "odd", theme: theme)
 
-#chapter-break(media, "odd")
-#appendices(("md/appx.md",), reader: reader, media: media, theme: theme)
+#chapter-break("odd", media: media)
+#appendices(("md/appx.md",), reader: reader, theme: theme)
 
-#chapter-break(media, "odd")
+#chapter-break("odd", media: media)
 #about-author(theme: theme)[
   A short biographical note, exercising `about-author` — this page carries
   `<no-folio>`, so it should show no folio despite being well past the

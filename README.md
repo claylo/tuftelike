@@ -93,13 +93,12 @@ and they'd resolve inside the tuftelike package, which fails.
   authors: ("A. Demo Author",),
 )
 
-#show: begin-chapters.with(resolve-media())
-#chapters(("content/chapter-one.md",), reader: reader,
-  media: resolve-media(), content-root: "content")
+#show: begin-chapters
+#chapters(("content/chapter-one.md",), reader: reader, content-root: "content")
 ```
 
-Compile: `typst compile --root . --font-path fonts --input media=screen main.typ out.pdf`
-(swap `media=print` for the bleed / mirrored-margin version). Full working
+Compile: `typst compile --root . --font-path fonts main.typ out.pdf` (screen);
+add `--input target=print` for the bleed / mirrored-margin version. Full working
 example: `examples/book/`.
 
 ### Letter
@@ -173,31 +172,48 @@ precise in-text anchor matters.
 
 ## Paper presets
 
-| Preset | Trim | Note column | Bleed | Typical use |
-|---|---|---|---|---|
-| `crown-quarto` | 189 × 246 mm | 37mm | 3.18mm | print-proven book default |
-| `us-trade-6x9` | 152.4 × 228.6 mm (6×9in) | 26mm | 3.175mm | book — see tuning note below |
-| `us-letter` | 215.9 × 279.4 mm (8.5×11in) | 2in, inside a 3in (letter) / 3.5in (handout) margin | none — one-sided | letter, handout |
+Twenty-six presets named `<printer>-<trim>` — every mainstream Lulu and KDP paperback
+trim — each tagged with a **tier** and a **status**:
 
-> The `us-trade-6x9` note column (and its top/bottom extras) are **initial
-> values** — tune them against printed proofs before treating the preset as
-> stable. `crown-quarto`'s numbers are print-proven and shouldn't need
-> adjustment.
+- **Tier 1** (full Tufte, 11pt): `lulu-crown-quarto` (the print-proven default),
+  `kdp-7.5x9.25`, `kdp-7.44x9.69`, `lulu-executive` / `kdp-7x10`, `kdp-8x10`,
+  `lulu-us-letter` / `kdp-8.5x11`, `lulu-a4` / `kdp-a4`, plus two landscapes.
+- **Tier 2** (Tufte at 10pt — recommends the `tier2` type preset): `lulu-us-trade` /
+  `kdp-6x9`, `lulu-royal` / `kdp-6.14x9.21`, `kdp-6.69x9.61`, `lulu-comic`.
+- **Tier 3** (no note column; notes become footnotes; `tier3`): `lulu-digest` /
+  `kdp-5.5x8.5`, `lulu-a5`, `lulu-novella` / `kdp-5x8`, `kdp-5.25x8`, `kdp-5.06x7.81`,
+  `lulu-pocketbook`.
 
-Pass a custom dict with the same shape (`trim`, `bleed`, `safety`,
-`note-col`, `note-gap`, `top-extra`, `bottom-extra`, `gutter-table`) to any
-`paper:` param instead of a preset name.
+Only `lulu-crown-quarto` is `proven`; the rest are `initial` — derived from it and
+measured (`just measure <paper>`), not yet held in a hand. Legacy names `crown-quarto`,
+`us-trade-6x9`, `us-letter` still resolve. Printer rules (KDP bleeds the outside edge
+only; the two gutter tables; spine formulas; Lulu coil) are data in `src/geometry.typ`.
+Full table, printer facts, bindings, and how to promote a paper:
+[`docs/papers.md`](docs/papers.md).
 
-## Media
+## Build targets (screen / print / printer / binding)
 
-Every class resolves screen vs. print from `--input media=`:
+One source, several outputs. Built-in targets are `screen` (default: cream page, no
+bleed, notes always right) and `print` (bleed, mirrored margins, two-sided folios, at
+the class's `paper:`). Add your own on any class and flip them at compile time:
+
+```typ
+#show: book.with(
+  paper: "kdp-7.5x9.25",
+  targets: (kdp: (media: "print", paper: "kdp-7.5x9.25"),
+            coil: (media: "print", paper: "lulu-us-letter", binding: "coil")),
+)
+```
 
 ```
-typst compile --input media=print  …   # bleed, mirrored margins, two-sided folios
-typst compile --input media=screen …   # the ebook PDF — cream background, no bleed, notes always on the right
+typst compile main.typ                        # screen
+typst compile --input target=kdp  main.typ    # KDP edition
+typst compile --input target=coil main.typ    # Lulu coil build
+typst compile --input media=print main.typ    # still works (alias for the built-in print target)
 ```
 
-Screen is the default if `--input media=` is omitted.
+Inside a class media is ambient: `#show: begin-chapters` takes no argument, and
+`chapters()` / `appendices()` have no `media:` param.
 
 ## Cover
 
@@ -291,7 +307,7 @@ Rules of the road:
 ### Theme variants: flip at compile time
 
 Every class also takes `presets:` — named theme overlays selected with
-`--input theme=<name>` (same pattern as `media`), so one source file can
+`--input theme=<name>` (same pattern as `target`), so one source file can
 print a book more than one way without edits:
 
 ```typ

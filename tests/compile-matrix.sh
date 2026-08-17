@@ -16,6 +16,10 @@ echo "== book/print themed (--input theme=trade)"
 typst compile --root . --font-path fonts --input media=print --input theme=trade \
   "examples/book/main.typ" "out/matrix-book-print-trade.pdf" || fail=1
 
+echo "== book/print via --input target=print"
+typst compile --root . --font-path fonts --input target=print \
+  "examples/book/main.typ" "out/matrix-book-target-print.pdf" || fail=1
+
 echo "== cover"
 typst compile --root . --font-path fonts \
   examples/cover/main.typ out/matrix-cover.pdf || fail=1

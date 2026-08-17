@@ -1,5 +1,6 @@
 #import "@preview/marginalia:0.3.1" as marginalia
 #import "themes.typ": role, styled, with-theme
+#import "geometry.typ": current-paper
 
 // Tufte convention is arabic superscript numerals, not marginalia's default
 // symbol cycle (note-markers-alternating: ● ○ ◆ ◇ …). `numbering:` on
@@ -19,21 +20,35 @@
   styled(th, "note", block({ set par(leading: role(th, "note").leading); body }))
 })
 
+// Tier-3 papers (note-col: 0mm) have no margin to put a note in: sidenote
+// and marginnote degrade to real footnotes there — the same book source
+// prints at a 5×8 trim without edits. Read ambiently (current-paper());
+// outside any class there is no paper → margin behavior.
+#let has-note-column() = {
+  let p = current-paper()
+  p == none or p.at("note-col", default: 1mm) > 0mm
+}
+#let in-margin-or-footnote(margin, body) = context {
+  if has-note-column() { margin } else { footnote(body) }
+}
+
 // Numbered Tufte sidenote. dy stays as an ESCAPE HATCH; marginalia positions
 // and collision-avoids automatically.
-#let sidenote(dy: 0pt, theme: auto, body) = marginalia.note(dy: dy,
-  numbering: arabic-note-numbering, note-body(theme, body))
+#let sidenote(dy: 0pt, theme: auto, body) = in-margin-or-footnote(
+  marginalia.note(dy: dy, numbering: arabic-note-numbering, note-body(theme, body)), body)
 
-// Unnumbered floating margin commentary.
-#let marginnote(dy: 0pt, theme: auto, body) = marginalia.note(counter: none, dy: dy,
-  note-body(theme, body))
+// Unnumbered floating margin commentary (a numbered footnote on tier-3 papers —
+// footnotes have no unnumbered mode).
+#let marginnote(dy: 0pt, theme: auto, body) = in-margin-or-footnote(
+  marginalia.note(counter: none, dy: dy, note-body(theme, body)), body)
 
-// Margin figure with caption.
+// Margin figure with caption. Asserts on tier-3 papers: there is no margin.
 // Note: body wrapped in parens because Typst 0.15.0 rejects a bare trailing
 // `=` at end-of-line with the expression starting on the next line.
-#let notefigure(content, caption: none, dy: 0pt) = (
+#let notefigure(content, caption: none, dy: 0pt) = context {
+  assert(has-note-column(), message: "notefigure: this paper has no note column — use figure()")
   marginalia.notefigure(content, caption: caption, dy: dy)
-)
+}
 
 // Full citation in the margin, numbered anchor in the text.
 // Requires a bibliography somewhere in the document (classes accept `bib:`).

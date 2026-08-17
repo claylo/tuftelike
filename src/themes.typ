@@ -142,7 +142,24 @@
 // The defaults ARE beautiful-evidence, so its overlay is empty — selecting
 // it by name is always valid and always means "the Tufte defaults". Shelf-
 // matrix presets (v0.2) land here as sibling overlays.
-#let theme-presets = ("beautiful-evidence": (:))
+// Per-tier type presets (geometry stays in geometry.typ; per-trim TYPE lives
+// here — decided 2026-08-17). Every tier-2/3 paper name is registered as an
+// alias to its tier preset, so --input theme=kdp-6x9 and --input theme=tier2
+// mean the same thing; papers also RECOMMEND their preset (theme-preset:
+// auto on a class falls through to the paper's pick).
+#import "geometry.typ": papers
+#let tier2 = (body: (size: 10pt), note: (size: 8.5pt), caption: (size: 8.5pt),
+  table-body: (size: 8.5pt), index: (size: 8.5pt))
+#let tier3 = (body: (size: 10pt), caption: (size: 8.5pt), table-body: (size: 8.5pt))
+#let tier3-small = (body: (size: 9pt), caption: (size: 8pt), table-body: (size: 8pt), table-head: (size: 9pt))  // pocket trims
+#let theme-presets = {
+  let d = ("beautiful-evidence": (:), tier2: tier2, tier3: tier3, "tier3-small": tier3-small)
+  for (name, p) in papers {
+    let tp = p.at("theme-preset", default: none)
+    if tp != none { d.insert(name, d.at(tp)) }
+  }
+  d
+}
 
 // dicts merge at every depth; anything else (arrays, scalars) replaces
 #let deep-merge(a, b) = {

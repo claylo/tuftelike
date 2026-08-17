@@ -1,19 +1,24 @@
 #import "@preview/tiaoma:0.3.0"
-#import "geometry.typ": resolve-paper
+#import "geometry.typ": resolve-paper, printers, resolve-stock, resolve-target
 #import "themes.typ": resolve-theme, role, role-args, styled
 #import "labels.typ": resolve-labels
 
-// mm of spine per page. lulu-standard-bw back-derived from the prototype
-// cover (13.03mm at ~228pp). Re-check printer docs when stakes are real:
-// Lulu book-creation-guide + KDP paperback submission specs.
-#let stocks = (
-  "lulu-standard-bw": 0.0572mm,
-  "kdp-white": 0.0572mm,     // 0.002252in/page
-  "kdp-cream": 0.0635mm,     // 0.0025in/page
-)
-#let spine-width(page-count, stock) = page-count * stocks.at(stock)
-#let cover-size(paper, page-count, stock) = (
-  width: 2 * paper.trim.w + spine-width(page-count, stock) + 2 * paper.bleed,
+// Spine width from the printer's per-stock formula (per-page × pages + plus).
+// See geometry.typ printers.<p>.spine for sources; lulu "standard-bw" is the
+// proven template-derived constant. Coil binding has no spine.
+#let spine-width(page-count, printer: "lulu", stock: auto, binding: "perfect") = {
+  if binding == "coil" { return 0mm }
+  let f = printers.at(printer).spine.at(resolve-stock(printer, stock))
+  page-count * f.per-page + f.plus
+}
+// printer: auto reads paper.printer (custom dicts must carry one or pass printer:)
+#let cover-printer(paper, printer) = if printer != auto { printer } else {
+  assert("printer" in paper, message: "cover(): paper dict has no printer — pass printer: \"lulu\" | \"kdp\"")
+  paper.printer
+}
+// both printers bleed the cover on all four edges
+#let cover-size(paper, page-count, stock: auto, binding: "perfect", printer: auto) = (
+  width: 2 * paper.trim.w + spine-width(page-count, printer: cover-printer(paper, printer), stock: stock, binding: binding) + 2 * paper.bleed,
   height: paper.trim.h + 2 * paper.bleed,
 )
 
@@ -42,18 +47,24 @@
 }
 
 #let cover(
-  paper: "crown-quarto", page-count: 200, stock: "lulu-standard-bw",
+  paper: "crown-quarto", page-count: 200, stock: auto, binding: "perfect", printer: auto,
+  target: auto, targets: (:),
   background: none,
   front: (:), spine: (:), back: (:),
   barcode: none, theme: (:), presets: (:), theme-preset: auto, labels: (:),
 ) = {
-  let paper = resolve-paper(paper)
-  let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
+  // a target may pick paper/binding/theme-preset (same mechanism as the classes)
+  let tg = resolve-target(target: target, targets: targets, media: "print", paper: paper,
+    binding: binding, theme-preset: theme-preset)
+  let paper = tg.paper
+  let pr = cover-printer(paper, printer)
+  let theme = resolve-theme(theme, presets: presets, preset: tg.theme-preset)
   let labels = resolve-labels(labels)
   // helpers read this via current-theme()/current-labels() — never thread it
-  state("tuftelike").update((media: none, paper: paper, theme: theme, labels: labels))
-  let sw = spine-width(page-count, stock)
-  let cs = cover-size(paper, page-count, stock)
+  state("tuftelike").update((media: "print", paper: paper, theme: theme, labels: labels,
+    target: tg.name, binding: tg.binding))
+  let sw = spine-width(page-count, printer: pr, stock: stock, binding: tg.binding)
+  let cs = cover-size(paper, page-count, stock: stock, binding: tg.binding, printer: pr)
   set page(width: cs.width, height: cs.height, margin: 0mm,
     background: if background != none { image-fill(background, cs) } else { none })
   set text(..role-args(theme, "cover.base"))
@@ -65,8 +76,9 @@
       #back.at("blurb", default: none)
       #place(bottom + right, barcode-zone(theme, labels, barcode))
     ],
-    // SPINE — auto-hidden under 80 pages (printer minimums)
-    if page-count >= 80 {
+    // SPINE — text auto-hidden below the printer's spine-text threshold; a
+    // coil cover has no spine at all (sw = 0mm → empty column)
+    if sw > 0mm and page-count >= printers.at(pr).spine-text-min-pages {
       // rotate(-90deg, reflow: true), not the plan draft's bare
       // rotate(90deg, ...): two corrections, verified in isolation before
       // landing here (see Task 16 report for the probes).

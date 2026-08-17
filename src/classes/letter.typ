@@ -1,24 +1,28 @@
 #import "@preview/marginalia:0.3.1" as marginalia
-#import "../geometry.typ": resolve-media, resolve-paper
+#import "../geometry.typ": resolve-target
 #import "../themes.typ": resolve-theme, role, role-args, styled
 #import "../labels.typ": resolve-labels
 #import "../typography.typ": base-style
 #import "../notes.typ": footnote-transform
 
 #let letter(
-  paper: "us-letter", media: auto,
+  paper: "us-letter", media: auto, target: auto, targets: (:),
   from: (:),                 // (name:, title:, org:, address:, email:) or content
   to: none, date: auto, re: none, salutation: none,
   closing: "Sincerely,", signature: none,   // content|image|str
   enclosures: (), cc: (),
   numbered-sections: false,
   theme: (:), presets: (:), theme-preset: auto, labels: (:),
-  footnotes-as-sidenotes: true,
+  footnotes-as-sidenotes: auto,
   doc,
 ) = {
-  let media = resolve-media(media: media)
-  let paper = resolve-paper(paper)
-  let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
+  let tg = resolve-target(target: target, targets: targets, media: media, paper: paper,
+    theme-preset: theme-preset)
+  let media = tg.media
+  let paper = tg.paper
+  assert("letter-margin" in paper, message: "this class needs a letter-sized paper (us-letter, a4 presets) — \"letter-margin\" missing")
+  let theme = resolve-theme(theme, presets: presets, preset: tg.theme-preset)
+  let fas = if footnotes-as-sidenotes == auto { paper.note-col > 0mm } else { footnotes-as-sidenotes }
   let labels = resolve-labels(labels)
   let m = paper.letter-margin
   let L = role(theme, "letter")
@@ -35,9 +39,10 @@
     })
   show: base-style.with(theme, labels, paper.note-col + paper.note-gap, media: media)
   // MUST precede all content: ordering-sensitive (spike finding c)
-  show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
-  // helpers read this via current-theme()/current-labels() — never thread it
-  state("tuftelike").update((media: media, paper: paper, theme: theme, labels: labels))
+  show: d => if fas { footnote-transform(theme, d) } else { d }
+  // helpers read this via current-theme()/current-labels()/current-target() — never thread it
+  state("tuftelike").update((media: media, paper: paper, theme: theme, labels: labels,
+    target: tg.name, binding: "perfect"))
   // NOTE: `set heading(numbering: if … { … } else { none })`, not the
   // plan's `if numbered-sections { set heading(...) }`. A `set` rule
   // inside a bare `if { }` with no matching content in that SAME block

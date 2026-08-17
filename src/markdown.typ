@@ -4,6 +4,7 @@
 #import "@preview/in-dexter:0.7.2": index, index-main
 #import "notes.typ": sidenote, marginnote, notefigure, wideblock
 #import "typography.typ": tufte-quote
+#import "breaks.typ": chapter-break
 
 // Renders CommonMark with the tuftelike scope pre-wired.
 // `reader` MUST be created in the USER's file so paths resolve there:
@@ -51,6 +52,7 @@
       sidenote: body => sidenote(theme: theme, body),
       marginnote: body => marginnote(theme: theme, body),
       notefigure: notefigure,   // margin figures from raw-typst blocks
+      chapter-break: chapter-break, // injected between chapter files by chapters()
       index: index,             // in-dexter markers from raw-typst blocks
       index-main: index-main,   // (colophon's render stage emits these)
     ),

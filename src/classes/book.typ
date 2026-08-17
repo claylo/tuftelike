@@ -1,5 +1,5 @@
 #import "@preview/marginalia:0.3.1" as marginalia
-#import "../geometry.typ": resolve-media, resolve-paper, page-size, marginalia-config
+#import "../geometry.typ": resolve-target, page-size, marginalia-config
 #import "../themes.typ": resolve-theme
 #import "../labels.typ": resolve-labels
 #import "../typography.typ": base-style
@@ -10,20 +10,24 @@
 #import "../notes.typ": footnote-transform
 
 #let book(
-  paper: "crown-quarto", media: auto, page-count-range: "151-400",
+  paper: "crown-quarto", media: auto, page-count-range: auto,   // auto = printer default band
+  binding: "perfect", target: auto, targets: (:),   // build targets: see geometry.typ resolve-target
   title: none, subtitle: none, authors: (), publisher: none, release: none,
   copyright: (:), dedication: none, epigraphs: none,
   front: (:),                  // (introduction: content, preface: content, acknowledgments: content)
   parts: (), alt-runners: (:), icons: (:),
   theme: (:), presets: (:), theme-preset: auto, labels: (:), bib: none, bib-visible: true,
-  footnotes-as-sidenotes: true,
+  footnotes-as-sidenotes: auto,   // auto: sidenotes unless the paper has no note column
   doc,
 ) = {
-  let media = resolve-media(media: media)
-  let paper = resolve-paper(paper)
-  let theme = resolve-theme(theme, presets: presets, preset: theme-preset)
+  let tg = resolve-target(target: target, targets: targets, media: media, paper: paper,
+    binding: binding, theme-preset: theme-preset, page-count-range: page-count-range)
+  let media = tg.media
+  let paper = tg.paper
+  let theme = resolve-theme(theme, presets: presets, preset: tg.theme-preset)
   let labels = resolve-labels(labels)
-  let mc = marginalia-config(paper, media, page-count-range: page-count-range)
+  let mc = marginalia-config(paper, media, page-count-range: tg.page-count-range, binding: tg.binding)
+  let fas = if footnotes-as-sidenotes == auto { paper.note-col > 0mm } else { footnotes-as-sidenotes }
   let ps = page-size(paper, media)
   let note-ext = paper.note-col + paper.note-gap
 
@@ -43,10 +47,10 @@
   show: base-style.with(theme, labels, note-ext, media: media)
   show: chapter-heading-rules.with(theme, labels, note-ext, icons: icons)
   // MUST precede all content: ordering-sensitive (spike finding c)
-  show: d => if footnotes-as-sidenotes { footnote-transform(theme, d) } else { d }
-  // helpers read this via current-theme()/current-labels() — never thread it
+  show: d => if fas { footnote-transform(theme, d) } else { d }
+  // helpers read this via current-theme()/current-labels()/current-target() — never thread it
   state("tuftelike").update((media: media, paper: paper, theme: theme,
-    labels: labels, parts: parts))
+    labels: labels, parts: parts, target: tg.name, binding: tg.binding))
 
   // front matter sequence (print-proven order)
   if epigraphs != none { frontmatter-page(paper, media, epigraph-page(theme, epigraphs)) }

@@ -113,3 +113,43 @@ diff after. Bboxes must match; folio-number-only diffs mean body pagination move
 - When the root cause is a one-line fix in Clay's environment, say so FIRST. Never
   build repo-side workarounds around it (the TYPST_PACKAGE_PATH lesson).
 - Naming hygiene per prototype-book-naming memory still applies to everything.
+
+---
+
+# Addendum — print sizes session (2026-08-17, later same day; branch `print-sizes`)
+
+Spec: `record/superpowers/specs/2026-08-17-print-sizes-design.md` (approved; §9 targets,
+§10 spine). Plan: `record/superpowers/plans/2026-08-17-print-sizes.md` (all tasks done).
+Reference doc: `docs/papers.md`.
+
+**Landed:** `printers` table (lulu/kdp — bleed model, gutter bands, coil, spine
+formulas, spine-text threshold); 26 `<printer>-<trim>` papers from `trims` × printers,
+tiers 1/2/3, `status` proven/initial (only lulu-crown-quarto proven); tier2/tier3/
+tier3-small type presets papers RECOMMEND (`theme-preset: auto` falls through);
+`page-count-range: auto` = printer default band; build targets (`targets:` +
+`--input target=`, built-ins screen/print, `--input media=` alias); ambient
+`#show: begin-chapters`, `chapters()`/`appendices()` lost `media:`, `chapter-break`
+in `src/breaks.typ` and in md's raw-typst scope; `binding: "coil"`; tier-3 papers
+degrade sidenote/marginnote to footnotes, `footnotes-as-sidenotes: auto`; `cover()`
+per-printer spine/stock/coil/target; `bin/measure` + `just measure[-all]`;
+`tests/paper-matrix.sh` in `just test` (26 papers + book kdp/coil targets + 2 covers).
+
+**Decisions:** KDP gutter = additive extras reproducing the proven CQ feel (not KDP
+minimum+ε). Tier 3 degrades gracefully. Lulu spine: proven constant default,
+guide formula alongside; Clay to re-check where 13.03mm@228pp came from. Wiring
+guide: 8×10.5 is NOT a printable trim → KDP 8×10 (all-configs) + Lulu US Letter coil
+(VIN builds); both migrated + building. Failing to Die → `kdp-7.5x9.25`, 151–300,
+`--input target=kdp`; building (screen 7.5×9.25, print 7.625×9.5).
+
+**Parity:** all defaults identical vs `snapshots/before` except the two 6×9 users
+(examples/book, template) which now get the recommended tier2 10pt — verified
+identical when the default theme is forced.
+
+**Next:** printed proofs → promote papers (docs/papers.md §8); Clay's spine
+constant check; the shelf matrix (record/tufte-style-matrix.md) — "grim, but we
+should"; Universe when the proof gate passes.
+
+**Gotchas:** `str(auto)` is a type error (use `repr`); `grep -m1` in a `pipefail`
+pipeline SIGPIPEs mutool (dump to a file first); `typst query` deprecated → `typst
+eval 'query(<p>)…' --in file --format json`; KDP page-with-bleed is trim+b wide,
+trim+2b tall.

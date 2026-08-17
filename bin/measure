@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# measure — render tests/measure/page.typ at a paper preset and report the
+# body column, note column, characters per line, and lines per page from
+# the PDF's actual text geometry (mutool). This is how an "initial" paper
+# gets checked (and, with a physical proof, promoted to "proven").
+#   bin/measure <paper>        one row
+#   bin/measure --all          every preset (also writes out/measure.tsv)
+#   bin/measure -h
+set -euo pipefail
+cd "$(dirname "$0")/.."
+usage() { sed -n '2,9p' "$0" | sed -E 's/^# ?//'; }
+[[ $# -ge 1 ]] || { usage >&2; exit 2; }
+case "$1" in -h|--help) usage; exit 0 ;; esac
+for t in typst mutool pdfinfo jq; do command -v "$t" >/dev/null || { echo "measure: $t required" >&2; exit 2; }; done
+mkdir -p out
+
+names() {
+  local q="out/measure-names.typ"
+  printf '#import "@local/tuftelike:0.1.0": papers\n#metadata(papers.pairs().map(((k, v)) => (name: k, tier: v.tier, status: v.status, printer: v.printer))) <p>\n' > "$q"
+  typst eval --root . 'query(<p>).first().value' --in "$q" --format json 2>/dev/null \
+    | jq -r '.[] | "\(.name)\t\(.tier)\t\(.status)\t\(.printer)"'
+}
+ALIASES='^(crown-quarto|us-trade-6x9|us-letter)$'
+meta() { names | awk -F'\t' -v n="$1" '$1==n {print $2"\t"$3"\t"$4}'; }
+
+# body/note geometry from the stext of the page carrying "Measure"
+one() {
+  local paper=$1 pdf="out/measure-$1.pdf"
+  typst compile --root . --font-path fonts --input "paper=$paper" tests/measure/page.typ "$pdf" 2>/dev/null \
+    || { printf '%s\tCOMPILE-FAILED\n' "$paper"; return; }
+  local page pw ph st="out/measure-$1.stext"
+  mutool draw -F stext -o "$st" "$pdf" 2>/dev/null
+  page=$(awk '/<page id=/{p++} /text="Measure"/{print p; exit}' "$st")
+  # keep only that page's block
+  awk -v want="$page" '/<page id=/{p++} p==want' "$st" > "$st.page"
+  read -r pw ph < <(grep -oE 'width="[0-9.]+" height="[0-9.]+"' "$st.page" | head -1 | sed -E 's/[a-z]+="//g; s/"//g')
+  # lines: x0 y0 x1 y1 nchars ; body lines = the widest cluster (>= 60% of max width)
+  grep -oE '<line bbox="[^"]*"[^>]*text="[^"]*"' "$st.page" \
+    | sed -E 's/<line bbox="([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)".*text="([^"]*)"/\1 \2 \3 \4 \5/' \
+    | awk -v paper="$paper" -v pw="$pw" -v ph="$ph" -v meta="$(meta "$paper")" '
+      { x0=$1; y0=$2; x1=$3; y1=$4; $1=$2=$3=$4=""; t=substr($0,5); w=x1-x0; n++
+        X0[n]=x0; X1[n]=x1; W[n]=w; L[n]=length(t); Y[n]=y0
+        if (w>maxw) maxw=w }
+      END {
+        # body = lines at least 60% of the widest; note = narrower lines whose left edge is right of the body
+        bl=1e9; br=0; bn=0; bc=0
+        for(i=1;i<=n;i++) if (W[i] >= 0.6*maxw) { if(X0[i]<bl)bl=X0[i]; if(X1[i]>br)br=X1[i]; bn++; bc+=L[i] }
+        nl=1e9; nr=0; nn=0; nc=0
+        for(i=1;i<=n;i++) if (W[i] < 0.6*maxw && X0[i] > br - 1) { if(X0[i]<nl)nl=X0[i]; if(X1[i]>nr)nr=X1[i]; nn++; nc+=L[i] }
+        mm=25.4/72
+        split(meta, M, "\t")
+        printf "%s\t%s\t%s\t%s\t%.0fx%.0f\t%.1f\t%.0f\t%s\t%s\t%d\n", paper, M[3], M[1], M[2], pw*mm, ph*mm, (br-bl)*mm, (bn?bc/bn:0), (nn? sprintf("%.1f",(nr-nl)*mm):"-"), (nn? sprintf("%.0f",nc/nn):"-"), bn
+      }'
+}
+
+header() { printf 'PAPER\tPRINTER\tTIER\tSTATUS\tPAGE(mm)\tBODY(mm)\tCPL\tNOTE(mm)\tNCPL\tLINES\n'; }
+if [[ "$1" == "--all" ]]; then
+  { header; names | cut -f1 | grep -vE "$ALIASES" | while read -r p; do one "$p"; done; } | tee out/measure.tsv | column -t -s $'\t'
+else
+  { header; one "$1"; } | column -t -s $'\t'
+fi

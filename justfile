@@ -18,12 +18,14 @@ test: clean install
     if [ -x tests/compile-matrix.sh ]; then tests/compile-matrix.sh; fi
     tests/font-swap.sh
     tests/role-coverage.sh
+    tests/paper-matrix.sh
 
-# build an example: just demo book print — optional theme flips a named
-# preset variant: just demo book print trade -> out/book-print-trade.pdf
-demo target media="screen" theme="": install
+# build an example at a build target: just demo book print — targets are the
+# built-ins (screen, print) plus the example's own (book: kdp, coil); an
+# optional theme flips a named preset: just demo book print trade
+demo example variant="screen" theme="": install
     mkdir -p out
-    {{typst}} compile --root . --font-path fonts --input "media={{media}}" {{ if theme != "" { "--input theme=" + theme } else { "" } }} "examples/{{target}}/main.typ" "out/{{target}}-{{media}}{{ if theme != "" { "-" + theme } else { "" } }}.pdf"
+    {{typst}} compile --root . --font-path fonts --input "target={{variant}}" {{ if theme != "" { "--input theme=" + theme } else { "" } }} "examples/{{example}}/main.typ" "out/{{example}}-{{variant}}{{ if theme != "" { "-" + theme } else { "" } }}.pdf"
 
 # build the wrap-cover example (no media toggle — cover is a single compile target)
 cover: install
@@ -59,3 +61,11 @@ snapshot label=`TZ=America/New_York date +%Y-%m-%d-%H%M`:
 # geometry-diff every PDF in out/ against a snapshot (line bboxes + font/size)
 parity label:
     tests/parity.sh "snapshots/{{label}}" out
+
+# body/note width, chars per line, lines per page for one paper preset
+measure paper:
+    bin/measure {{paper}}
+
+# same, for every paper preset (also writes out/measure.tsv)
+measure-all:
+    bin/measure --all

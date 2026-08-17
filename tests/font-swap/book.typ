@@ -12,7 +12,7 @@
   bib: bibliography("../visual/refs.bib"), bib-visible: true,
   theme: swap-theme,
 )
-#show: begin-chapters.with(resolve-media())
+#show: begin-chapters
 #part-divider("I", "Part One")
 = Chapter One
 #newthought[Lead in] body text#sidenote[side] and#marginnote[margin] and
@@ -31,7 +31,7 @@ raw block
 + enum item
 #md("Md para.<note>md note</note> <note numbered>numbered</note>\n\n<prompt>p</prompt><response>r</response>\n\n> md quote\n\n`md code`\n\n#index[term]",
   extensions: instructional-extensions())
-#appendices(("../visual/md/appx.md",), reader: reader, media: resolve-media())
+#appendices(("../visual/md/appx.md",), reader: reader)
 #about-author[Bio.]
 #colophon[Set for the test.]
 #book-index()

@@ -7,7 +7,7 @@
   paper: "us-trade-6x9",
 )
 
-#show: begin-chapters.with(resolve-media())
+#show: begin-chapters
 #chapters(
   ("content/chapter-one.md",),
-  reader: reader, media: resolve-media(), content-root: "content")
+  reader: reader, content-root: "content")
