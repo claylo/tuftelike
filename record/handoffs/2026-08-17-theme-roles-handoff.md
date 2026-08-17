@@ -135,8 +135,9 @@ per-printer spine/stock/coil/target; `bin/measure` + `just measure[-all]`;
 `tests/paper-matrix.sh` in `just test` (26 papers + book kdp/coil targets + 2 covers).
 
 **Decisions:** KDP gutter = additive extras reproducing the proven CQ feel (not KDP
-minimum+ε). Tier 3 degrades gracefully. Lulu spine: proven constant default,
-guide formula alongside; Clay to re-check where 13.03mm@228pp came from. Wiring
+minimum+ε). Tier 3 degrades gracefully. Lulu spine: RESOLVED — Clay's four real
+Lulu templates match pages/444 + 0.06 in exactly; the old 0.0572 constant was KDP's
+number and is gone; per-printer barcode zones added from the templates. Wiring
 guide: 8×10.5 is NOT a printable trim → KDP 8×10 (all-configs) + Lulu US Letter coil
 (VIN builds); both migrated + building. Failing to Die → `kdp-7.5x9.25`, 151–300,
 `--input target=kdp`; building (screen 7.5×9.25, print 7.625×9.5).

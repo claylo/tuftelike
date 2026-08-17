@@ -235,12 +235,14 @@ typst compile main.typ                           # built-in "screen"
 - Book-specific inputs (VIN, section toggles) remain the book's own `sys.inputs`;
   tuftelike owns only `target`, `theme`, and (compat) `media`.
 
-### 10. Lulu spine constant — resolved
+### 10. Lulu spine — RESOLVED by evidence (same day)
 
-`standard-bw` (0.0572 mm/pg, back-derived from the prototype's real Lulu template) stays
-the default; `guide-formula` (pages/444 + 0.06 in) ships alongside. Clay to re-check
-where the prototype's number came from; the doc tells users to compare against Lulu's
-generated template for their page count. Both recorded, neither hidden.
+Four real Lulu cover templates from the prototype's setup (140/180/295/300 pp →
+9.53/11.82/18.40/18.69 mm) fit `pages/444 + 0.06 in` exactly. The "proven" 0.0572 mm/pg
+constant was KDP's white-paper number and is removed; Lulu's only stock is `paperback`
+(the formula); legacy `standard-bw`/`guide-formula`/`lulu-standard-bw` names map to it.
+Templates also gave the barcode zone (92 × 32 mm, 12.7 mm from bleed) → per-printer
+`barcode-zone`.
 
 ## Out of scope
 

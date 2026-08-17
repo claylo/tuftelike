@@ -40,8 +40,8 @@
 #assert(marginalia-config(lu, "print", page-count-range: "0-60").inner.far == 3mm + 10mm + 1mm)
 #assert(marginalia-config(kd, "print", page-count-range: "0-60").inner.far == 10mm + 1mm)   // no bleed on the bound edge
 #assert(marginalia-config(lu, "print", binding: "coil").inner.far == 3mm + 12.7mm)          // coil ignores gutter table
-#assert(resolve-stock("lulu", auto) == "standard-bw" and resolve-stock("kdp", auto) == "white")
-#assert(resolve-stock("lulu", "lulu-standard-bw") == "standard-bw" and resolve-stock("kdp", "kdp-cream") == "cream")
+#assert(resolve-stock("lulu", auto) == "paperback" and resolve-stock("kdp", auto) == "white")
+#assert(resolve-stock("lulu", "lulu-standard-bw") == "paperback" and resolve-stock("kdp", "kdp-cream") == "cream")
 
 // ── papers generated from trims × printers (Task 2) ──
 #let required = ("trim","bleed","safety","note-col","note-gap","top-extra","bottom-extra","gutter-table","printer","tier","status","bindings","bleed-model")

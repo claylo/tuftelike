@@ -29,13 +29,15 @@
     // coil bites ~9mm; Lulu suggests a 12.7mm inside margin, no gutter table
     coil: (inside: 12.7mm, min-pages: 2, max-pages: 470),
     spine: (
-      // PROVEN: back-derived from the prototype's real Lulu cover template
-      // (13.03mm at ~228pp). Lulu's published formula (below) is ~11%
-      // thicker — check Lulu's generated template for your page count.
-      "standard-bw": (per-page: 0.0572mm, plus: 0mm),
-      // Lulu Book Creation Guide, paperback: pages/444 + 0.06in
-      "guide-formula": (per-page: 1mm / 17.48, plus: 1.524mm),
+      // PROVEN against four real Lulu cover templates (140/180/295/300 pp →
+      // 9.53/11.82/18.40/18.69 mm): exactly the guide's paperback formula,
+      // pages/444 + 0.06 in. (An earlier 0.0572 mm/pg constant was KDP's
+      // white-paper number, not Lulu's — removed.)
+      "paperback": (per-page: 1mm / 17.48, plus: 1.524mm),
     ),
+    // reserved barcode zone on the back cover (from Lulu's template):
+    // 92 × 32 mm, 12.7 mm in from the bleed edge = 9.525 mm from trim
+    barcode-zone: (w: 92mm, h: 32mm, inset: 9.525mm),   // inset = from trim edge
     default-range: "151-400",       // page-count-range: auto lands here
     spine-text-min-pages: 81,       // "80 pages or fewer: no spine text"
     min-pages: 32,
@@ -56,6 +58,8 @@
       "premium-color": (per-page: 0.0596mm, plus: 0mm),  // 0.002347 in/page
     ),
     default-range: "151-300",
+    // KDP barcode: 2 × 1.2 in, 0.25 in from the trim edges
+    barcode-zone: (w: 50.8mm, h: 30.5mm, inset: 6.35mm),   // inset = from trim edge
     spine-text-min-pages: 80,       // "more than 79 pages"
     min-pages: 24,
     cover-safety: 3.2mm,            // KDP minimum; text still sits at 12.7mm like Lulu
@@ -68,6 +72,7 @@
   assert(printer in printers, message: "unknown printer \"" + printer + "\" — " + printers.keys().join(", "))
   let table = printers.at(printer).spine
   let s = if stock == auto { table.keys().first() }
+    else if stock in ("lulu-standard-bw", "standard-bw", "guide-formula") { "paperback" }  // legacy names
     else if stock.starts-with(printer + "-") { stock.slice(printer.len() + 1) }
     else { stock }
   assert(s in table, message: "unknown stock \"" + repr(stock) + "\" for " + printer + " — " + table.keys().join(", "))

@@ -28,8 +28,11 @@
 #let image-fill(img, cs) = block(width: cs.width, height: cs.height, clip: true,
   align(center + horizon, box(width: cs.width, height: cs.height, img)))
 
-#let barcode-zone(theme, labels, barcode) = {
-  let zone(body) = rect(width: 50.8mm, height: 30.5mm, fill: white, inset: 3mm,   // lint-ok: printer barcode-zone spec, not typography
+// The white barcode zone follows the printer's reserved area (Lulu 92×32mm,
+// KDP 2×1.2in); the EAN itself is drawn at the same size on both.
+#let barcode-zone(theme, labels, barcode, printer: "lulu") = {
+  let bz = printers.at(printer).barcode-zone
+  let zone(body) = rect(width: bz.w, height: bz.h, fill: white, inset: 3mm,   // lint-ok: printer barcode-zone spec, not typography
     align(center + horizon, body))
   if barcode == none { none }
   else if type(barcode) == dictionary and barcode.at("review-copy", default: false) {
@@ -74,7 +77,11 @@
       #if "overlay" in back { place(top + left, dx: -paper.safety - 6mm, dy: -paper.safety - 6mm,
         rect(width: 100% + 2 * (paper.safety + 6mm), height: 100% + 2 * (paper.safety + 6mm), fill: back.overlay)) }
       #back.at("blurb", default: none)
-      #place(bottom + right, barcode-zone(theme, labels, barcode))
+      // the panel's inset is safety+6mm from trim; the zone sits at the
+      // printer's reserved distance from trim instead
+      #let bz-shift = paper.safety + 6mm - printers.at(pr).barcode-zone.inset
+      #place(bottom + right, dx: bz-shift, dy: bz-shift,
+        barcode-zone(theme, labels, barcode, printer: pr))
     ],
     // SPINE — text auto-hidden below the printer's spine-text threshold; a
     // coil cover has no spine at all (sw = 0mm → empty column)

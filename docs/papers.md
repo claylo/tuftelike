@@ -95,15 +95,15 @@ custom paper dict works for anything else — see §7.
 | Gutter | additive over safety by page band: `0-60`: 0 · `61-150`: 3 · `151-400`: 13 · `401-600`: 16 · `over-600`: 19 mm | KDP publishes total inside minimums (9.6/12.7/15.9/19.1/22.3 mm); tuftelike stores additive extras `24-150`: 3 · `151-300`: 13 · `301-500`: 14 · `501-700`: 16 · `701-828`: 19 mm that reproduce the proven crown-quarto feel and clear every minimum |
 | Default page band (`page-count-range: auto`) | `151-400` | `151-300` |
 | Coil binding | yes — 2–470 pp, no gutter table, coil bites ~9 mm → 12.7 mm inside margin, still bleeds | no |
-| Paperback spine | `standard-bw`: 0.0572 mm/pg (**proven**, back-derived from a real Lulu template: 13.03 mm @ ~228 pp) · `guide-formula`: pages/444 + 0.06 in (Lulu's published formula, ~11% thicker) | `white`: 0.002252 in/pg · `cream`: 0.0025 in/pg · `premium-color`: 0.002347 in/pg |
+| Paperback spine | `paperback`: pages/444 + 0.06 in (= pages/17.48 + 1.524 mm) — **proven** against four real Lulu cover templates (140/180/295/300 pp → 9.53/11.82/18.40/18.69 mm, exact) | `white`: 0.002252 in/pg · `cream`: 0.0025 in/pg · `premium-color`: 0.002347 in/pg |
 | Spine text | none at ≤ 80 pp | none at ≤ 79 pp |
 | Cover bleed | 3.175 mm all four edges | same |
-| Barcode | 2 × 1.2 in zone bottom-right of the back (both printers place their own if you don't) | same |
+| Barcode zone | 92 × 32 mm, 12.7 mm from bleed edge (Lulu places its own if you don't) | 2 × 1.2 in, 0.25 in from trim (KDP places its own if you don't) |
 | Min pages | 32 | 24 |
 
-The two Lulu spine numbers disagree; check Lulu's generated cover template for your
-page count and pick the stock that matches (`stock: "guide-formula"` if the template is
-the thicker one).
+Barcode zones follow each printer's reserved area: Lulu 92 × 32 mm at 12.7 mm from the
+bleed edge; KDP 2 × 1.2 in at 0.25 in from trim. `cover()` sizes and places the white
+zone accordingly (the EAN itself is the same size on both).
 
 Sources: KDP [trim/bleed/margins](https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6),
 [cover/spine](https://kdp.amazon.com/en_US/help/topic/G201953020); Lulu
@@ -159,7 +159,7 @@ tuftelike only owns `target`, `theme`, and (compat) `media`.
 
 `cover(paper:, page-count:, stock: auto, binding:, printer: auto, target:, targets:)`.
 The printer comes from the paper; `stock: auto` is that printer's default
-(`standard-bw` / `white`); legacy `"lulu-standard-bw"` names still work. Spine width
+(`paperback` / `white`); legacy `"lulu-standard-bw"` still resolves (to `paperback`). Spine width
 = per-page × pages + plus from the printer table; coil → no spine; spine text is
 suppressed below the printer's threshold. `examples/cover/kdp.typ` (7.5×9.25, 250 pp
 cream) and `examples/cover/coil.typ` (Lulu letter, coil) are compiled by `just test`.

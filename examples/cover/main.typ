@@ -3,7 +3,7 @@
 #cover(
   paper: "us-trade-6x9",
   page-count: 228,
-  stock: "lulu-standard-bw",
+  stock: "paperback",
   background: rect(width: 100%, height: 100%, fill: rgb("1a3a5c")),
   front: (
     author: "A. Demo Author",
