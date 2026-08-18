@@ -1,5 +1,5 @@
 #import "utils.typ": plain-text, lead-split
-#import "themes.typ": role, role-args, styled, current-theme, with-theme
+#import "themes.typ": role, role-args, styled, cased, current-theme, with-theme
 
 #let newthought(body, theme: auto) = with-theme(theme, th => {
   v(role(th, "newthought").above, weak: true)
@@ -28,8 +28,9 @@
 // book's print-proven values.
 #let base-style(theme, labels, note-ext, media: "screen", doc) = {
   let body = role(theme, "body")
-  set text(..role-args(theme, "body"))
-  set par(justify: theme.justify, leading: body.leading, spacing: body.spacing)
+  set text(..role-args(theme, "body"), hyphenate: body.hyphenate)
+  set par(justify: theme.justify, leading: body.leading, spacing: body.spacing,
+    first-line-indent: (amount: body.first-line-indent, all: true))
   set list(body-indent: theme.list.body-indent, spacing: theme.list.spacing)
   set enum(body-indent: theme.list.body-indent, spacing: theme.list.spacing)
   show list: set par(justify: false)
@@ -56,6 +57,10 @@
   show heading.where(level: 4): set block(below: theme.heading.h4.below) if theme.heading.h4.below != auto
   show heading.where(level: 5): set block(above: theme.heading.h5.above) if theme.heading.h5.above != auto
   show heading.where(level: 5): set block(below: theme.heading.h5.below) if theme.heading.h5.below != auto
+  // case: wrap the whole heading in upper()/smallcaps() — the element renders
+  // normally inside (this rule is outermost, so `it` does not re-enter it).
+  // Book classes replace h1–h3 rendering in chapter.typ and apply case there.
+  show heading: it => cased(theme.heading.at("h" + str(it.level), default: (:)), it)
   set heading(numbering: none) // mainmatter turns numbering on
 
   // Captions: "Supplement N." on its own sticky line, body below,

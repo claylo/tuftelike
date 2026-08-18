@@ -5,7 +5,7 @@
 // Typst imports are file-scoped, not block-scoped — keep them here, never
 // inside a show-rule closure.
 #import "utils.typ": plain-text
-#import "themes.typ": role, role-args, styled, with-theme
+#import "themes.typ": role, role-args, styled, cased, with-theme
 #import "labels.typ": current-labels
 
 #let chapter-heading-rules(theme, labels, note-ext, icons: (:), doc) = {
@@ -27,18 +27,21 @@
       styled(theme, "section-number", counter(heading).display(it.numbering))
       linebreak()
     }
-    #it.body
+    #cased(role(theme, "heading.h2"), it.body)
   ]
-  show heading.where(level: 3): it => {
+  // block wrapper: a show rule that returns bare inline content drops the
+  // heading's own block, and the heading runs into the next paragraph
+  // (fixed 2026-08-17 — it had been doing that in every book-class h3)
+  show heading.where(level: 3): it => block(width: 100% + note-ext, {
     let t = plain-text(it.body)
     // skip empty keys: "".starts-with matches every heading
     let hit = icons.pairs().find(((k, _)) => k != "" and (t.starts-with(k) or t.contains(k)))
     if hit != none {
       let ic = role(theme, "heading.h3-icon")
       grid(columns: (ic.width, auto), gutter: ic.gutter,
-        box(height: 1em, hit.last()), it.body)   // lint-ok: icon box is 1 text-line tall by definition
-    } else { it.body }
-  }
+        box(height: 1em, hit.last()), cased(role(theme, "heading.h3"), it.body))   // lint-ok: icon box is 1 text-line tall by definition
+    } else { cased(role(theme, "heading.h3"), it.body) }
+  })
   doc
 }
 

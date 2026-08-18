@@ -39,18 +39,27 @@
   draft: false,
 
   // ── base text (typography.typ base-style) ──
+  // first-line-indent + spacing pick the paragraph style: Tufte = spaced
+  // paragraphs (0em indent, 1.4em spacing); manual/trade = indented
+  // (1em indent, 0em spacing). The indent applies to EVERY paragraph,
+  // including the first after a heading (Typst first-line-indent all: true).
+  // hyphenate: auto = Typst default (hyphenate only when justified); true
+  // gives ragged text with hyphens (Tufte's own books) — recommended for
+  // narrow note columns
   body: r(font: "serif", size: 11pt, weight: "regular", style: "normal", tracking: 0em,
-    fill: luma(30), leading: 0.8em, spacing: 1.4em),   // prototype's print-proven metrics
-  note: r(font: "sans", size: 9pt, leading: 0.5em),
+    fill: luma(30), leading: 0.8em, spacing: 1.4em, first-line-indent: 0em, hyphenate: auto),   // prototype's print-proven metrics
+  note: r(font: "sans", size: 9pt, leading: 0.5em, hyphenate: auto),
   folio: r(font: "serif", size: 8pt, weight: "regular", style: "normal", tracking: 0.12em),
   raw: r(font: "mono", size: 0.8em),
   list: (spacing: 1.2em, body-indent: 1em),
+  // case: none | "upper" | "smallcaps" transforms the rendered heading only —
+  // TOC entries and PDF bookmarks keep the original text
   heading: (
-    h1: r(font: "serif", size: 20pt, weight: "regular", style: "italic", above: auto, below: auto),
-    h2: r(font: "serif", size: 18pt, weight: "regular", style: "italic", above: auto, below: auto),
-    h3: r(font: "serif", size: 16pt, weight: "regular", style: "italic", above: auto, below: auto),
-    h4: r(font: "serif", size: 14pt, weight: "regular", style: "italic", above: auto, below: auto),
-    h5: r(font: "serif", size: 12pt, weight: "regular", style: "italic", above: auto, below: auto),
+    h1: r(font: "serif", size: 20pt, weight: "regular", style: "italic", above: auto, below: auto, case: none),
+    h2: r(font: "serif", size: 18pt, weight: "regular", style: "italic", above: auto, below: auto, case: none),
+    h3: r(font: "serif", size: 16pt, weight: "regular", style: "italic", above: auto, below: auto, case: none),
+    h4: r(font: "serif", size: 14pt, weight: "regular", style: "italic", above: auto, below: auto, case: none),
+    h5: r(font: "serif", size: 12pt, weight: "regular", style: "italic", above: auto, below: auto, case: none),
     h3-icon: (width: 1.5em, gutter: 0.5em),   // chapter.typ keyword→icon grid
   ),
   // ── chapter openers / part dividers (chapter.typ) ──

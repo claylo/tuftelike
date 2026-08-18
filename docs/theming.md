@@ -93,7 +93,8 @@ Optional keys some roles carry:
 | `above`, `below` | `heading.h1`–`h5`, `toc.group`, `toc.l1`, `caption`, `newthought`, `backmatter-label` | vertical spacing the role owns. On headings, `auto` leaves Typst's own heading spacing alone; a length replaces it. |
 | `leading` | `body`, `note` | line leading within the role's paragraphs |
 | `spacing` | `body` | paragraph spacing |
-| `case` | `chapter-label`, `newthought`, `toc.group`, `title-page.*`, `cover.*`, `backmatter-label` | `"upper"` \| `"smallcaps"` \| `none` — a text transform applied to the role's content |
+| `case` | `heading.h1`–`h5`, `chapter-label`, `newthought`, `toc.group`, `title-page.*`, `cover.*`, `backmatter-label` | `"upper"` \| `"smallcaps"` \| `none` — a text transform applied to the role's content |
+| `first-line-indent`, `hyphenate` | `body` (`hyphenate` also on `note`) | paragraph style (indent vs spaced) and hyphenation; see [§8](#8-recipes) "manual look" |
 | `inset` | `prompt`, `response` | block inset for the instructional dialogue tags |
 | named gaps | `copyright.gap`, `dedication.group-gap`, `toc.title-gap`, `letter.after-date`, … | plain lengths a role or group owns; listed per role in [§7](#7-role-reference) |
 
@@ -250,12 +251,12 @@ Defaults shown are the Tufte look. `auto` = inherit. Paths are what you write in
 
 | role | default | applied to |
 |---|---|---|
-| `body` | serif · 11pt · regular · normal · 0em · `luma(30)` · `leading: 0.8em` · `spacing: 1.4em` | document text; `leading`/`spacing` feed `set par`; `fill` also strokes table rules |
-| `note` | sans · 9pt · `leading: 0.5em` | sidenotes, marginnotes, sidecites, markdown footnotes/`<note>` |
+| `body` | serif · 11pt · regular · normal · 0em · `luma(30)` · `leading: 0.8em` · `spacing: 1.4em` · `first-line-indent: 0em` · `hyphenate: auto` | document text; `leading`/`spacing`/`first-line-indent` feed `set par` (indent applies to every paragraph, first-after-heading included); `hyphenate` feeds `set text` (`auto` = only when justified; `true` = ragged with hyphens, Tufte's own practice); `fill` also strokes table rules |
+| `note` | sans · 9pt · `leading: 0.5em` · `hyphenate: auto` | sidenotes, marginnotes, sidecites, markdown footnotes/`<note>` — set `hyphenate: true` for narrow note columns |
 | `folio` | serif · 8pt · regular · normal · tracking 0.12em | running heads (book) |
 | `raw` | mono · 0.8em | inline and block code (`show raw`) |
 | `list` | `spacing: 1.2em`, `body-indent: 1em` | lists and enums (not a text role — spacing only) |
-| `heading.h1`…`h5` | serif · 20/18/16/14/12pt · regular · italic · `above: auto` · `below: auto` | heading text via show-set; `above`/`below` replace Typst's heading spacing only when set |
+| `heading.h1`…`h5` | serif · 20/18/16/14/12pt · regular · italic · `above: auto` · `below: auto` · `case: none` | heading text via show-set; `above`/`below` replace Typst's heading spacing only when set; `case` (`"upper"`/`"smallcaps"`) transforms the rendered heading only — TOC and bookmarks keep the original |
 | `heading.h3-icon` | `width: 1.5em`, `gutter: 0.5em` | the keyword→icon grid on level-3 headings (`icons:` on `book()`) |
 | `caption` | sans · 9pt · `below: 0.5em` | figure/table captions; `below` is the gap between "Figure N." and the caption body |
 | `table-head` | 10pt · regular | table row 0 |
@@ -370,6 +371,20 @@ theme: (
 Note the heading `above`/`below`: these are *block* spacing, so they replace — not
 add to — Typst's default heading gaps. If you're porting from `v(1.2em)` calls inside
 show rules, expect to retune by eye; the page count will move.
+
+**The shop-manual look** (bold caps sans heads, indented paragraphs, ragged with hyphens):
+
+```typ
+theme: (
+  fonts: (serif: ("Times New Roman", "Times"), sans: ("Helvetica Neue", "Helvetica")),
+  heading: (
+    h2: (font: "sans", size: 12pt, weight: "bold", style: "normal", case: "upper", above: 1.6em, below: 0.6em),
+    h3: (font: "serif", size: 11pt, weight: "bold", style: "italic", above: 1em, below: 0em),
+  ),
+  body: (first-line-indent: 1em, spacing: 0em, hyphenate: true),
+  note: (hyphenate: true),
+)
+```
 
 **Shrink for a 6×9 trade cut, as a preset:**
 

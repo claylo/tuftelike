@@ -17,7 +17,8 @@
   // block + set par, NOT par(..)[..]: wrapping in par() silently DROPS
   // block-level content (headings/lists in note bodies) and triggers
   // "parbreak ignored" warnings on markdown-rendered footnotes
-  styled(th, "note", block({ set par(leading: role(th, "note").leading); body }))
+  let n = role(th, "note")
+  styled(th, "note", block({ set par(leading: n.leading); set text(hyphenate: n.hyphenate); body }))
 })
 
 // Tier-3 papers (note-col: 0mm) have no margin to put a note in: sidenote
